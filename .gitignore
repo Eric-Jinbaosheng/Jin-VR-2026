@@ -9,3 +9,6 @@ cert.cer
 
 !package.json
 !package-lock.json
+*.bak
+__pycache__/
+*.pyc
