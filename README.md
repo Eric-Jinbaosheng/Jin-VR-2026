@@ -1,3 +1,38 @@
+# HW2 – Robot Calibration Challenge
+
+## Overview
+
+For Homework 2, I created a single-player VR game called **Robot Calibration Challenge**.
+
+The player uses the right VR controller beam and trigger to calibrate five randomly selected targets on a seven-joint robot arm before a 30-second timer expires.
+
+The game includes:
+
+- In-game instructions
+- Dynamic score and countdown timer
+- Game status and current objective
+- Explicit YOU WIN / YOU LOSE feedback
+- Controller beam interaction
+- Trigger input
+- Vibrational feedback
+- Hierarchical robot geometry
+- Animated robot joints
+- START and PLAY AGAIN controls
+
+As more joints are successfully calibrated, the robot's malfunctioning motion gradually decreases. If all five required joints are calibrated before the timer expires, the player wins and the robot becomes stable.
+
+## Controls
+
+Point the **right controller beam** at START and press the right trigger to begin.
+
+During the game, find the flashing calibration target, aim at it with the right controller, and press the trigger to calibrate that joint.
+
+Calibrate 5 targets before the 30-second timer reaches zero.
+
+After the game ends, point at PLAY AGAIN and press the trigger to restart.
+
+---
+
 # HW1 — VR Robotics Demonstration Collection
 
 **Author:** Jin Baosheng  

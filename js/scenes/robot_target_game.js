@@ -40,8 +40,8 @@ FIX ALL 5 POINTS BEFORE TIME RUNS OUT`);
    clay.defineTextMesh('robotGameGuideLabel', 'OPERATOR GUIDE');
    clay.defineTextMesh('robotGameStart', 'START');
    clay.defineTextMesh('robotGameRestart', 'PLAY AGAIN');
-   clay.defineTextMesh('robotGameWin', 'ROBOT ONLINE');
-   clay.defineTextMesh('robotGameLose', 'CALIBRATION FAILED');
+   clay.defineTextMesh('robotGameWin', 'YOU WIN!');
+   clay.defineTextMesh('robotGameLose', 'YOU LOSE!');
    clay.defineTextMesh('robotGameScore', 'CALIBRATED: 0 / 5');
    clay.defineTextMesh('robotGameTime', 'TIME: 30');
    clay.defineTextMesh('robotGameStatus', 'STATUS: READY');
@@ -73,8 +73,8 @@ FIX ALL 5 POINTS BEFORE TIME RUNS OUT`);
    let objectiveText = makeFlatText('OBJECTIVE: START CALIBRATION', .045, [.35, .9, 1]);
    let startText = makeFlatText('START', .15, [.55, 1, 1]);
    let restartText = makeFlatText('PLAY AGAIN', .09, [.55, 1, 1]);
-   let winText = makeFlatText('ROBOT ONLINE', .09, [.3, 1, .45]);
-   let loseText = makeFlatText('CALIBRATION FAILED', .065, [1, .25, .18]);
+   let winText = makeFlatText('YOU WIN!', .12, [.3, 1, .45]);
+   let loseText = makeFlatText('YOU LOSE!', .12, [1, .25, .18]);
 
    // Calibration console panels.
 
