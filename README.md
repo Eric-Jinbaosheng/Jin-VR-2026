@@ -1,3 +1,15 @@
+# HW3 — Two-Player Cooperative Carrying Task
+
+**Scene:** `coop_carry` (`js/scenes/coop_carry.js`)
+
+Open the same course server from two VR browsers and select `coop_carry` in both. Each participant aims the right controller beam at an available role and presses the right trigger. Player 1 takes the blue left handle; Player 2 takes the orange right handle. A taken role becomes unavailable to the other client.
+
+Both players must press and hold the right trigger while their controller is near their own handle. The box stays locked until both handles are held. Player 1 computes box translation from the change in the midpoint of the two controller positions and sends the box position to Player 2. Carry the box to the green target to complete the task. Aim at **RESET TASK** and press the right trigger to restart the task without changing roles.
+
+Role selection, hand positions, grab and release events, box movement, reset, and success use the course server's `server.send` / `server.sync` messages. A client leaving the scene or disconnecting releases its role; the remaining player must wait for a new partner. Both headsets need a shared spatial origin for the controller positions to line up with the box.
+
+---
+
 # HW2 – Robot Calibration Challenge
 
 ## Overview

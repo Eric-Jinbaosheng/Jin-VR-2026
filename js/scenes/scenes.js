@@ -2,18 +2,20 @@ export default () => {
    return {
       enableSceneReloading: true,
       scenes: [ 
-            { name: "simple"   , path: "./simple.js"   , public: true },
-            { name: "shapes"   , path: "./shapes.js"   , public: true },
-            { name: "jointed"  , path: "./jointed.js"  , public: true },
-            { name: "interact" , path: "./interact.js" , public: true },
-            { name: "beam"     , path: "./beam.js"     , public: true },
-            { name: "robotics" , path: "./robot_data_collection.js", public: true},
+            { name: "simple"    , path: "./simple.js"    , public: true },
+            { name: "shapes"    , path: "./shapes.js"    , public: true },
+            { name: "jointed"   , path: "./jointed.js"   , public: true },
+            { name: "interact"  , path: "./interact.js"  , public: true },
+            { name: "beam"      , path: "./beam.js"      , public: true },
+            { name: "robotics"  , path: "./robot_data_collection.js", public: true },
             { name: "robot_game", path: "./robot_target_game.js", public: true },
-            { name: "lines"    , path: "./lines.js"    , public: true },
-            { name: "linefont" , path: "./linefont.js" , public: true },
-            { name: "linefont2", path: "./linefont2.js", public: true },
-            { name: "buddha"   , path: "./buddha.js"   , public: true },
-
+            { name: "coop_carry", path: "./coop_carry.js", public: true },
+            { name: "lines"     , path: "./lines.js"     , public: true },
+            { name: "linefont"  , path: "./linefont.js"  , public: true },
+            { name: "linefont2" , path: "./linefont2.js" , public: true },
+            { name: "buddha"    , path: "./buddha.js"    , public: true },
+            { name: "beamSphere", path: "./beamSphere.js", public: true },
+            { name: "construct" , path: "./construct.js" , public: true },
       ]
    };
 }
