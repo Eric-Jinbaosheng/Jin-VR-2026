@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HW3 双人本地测试</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #0b1520; color: #eaf4ff; font: 15px/1.4 Arial, sans-serif; }
+    header { padding: 12px 18px; background: #15283b; border-bottom: 1px solid #36536c; }
+    h1 { margin: 0 0 4px; font-size: 20px; }
+    p { margin: 3px 0 10px; }
+    .controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    button { border: 0; border-radius: 6px; padding: 9px 15px; background: #75c8ff; color: #082033; font-weight: bold; cursor: pointer; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    input[type=range] { width: min(280px, 36vw); vertical-align: middle; }
+    #status { min-height: 20px; margin-top: 8px; color: #bcd6e9; }
+    main { display: grid; grid-template-columns: 1fr 1fr; height: calc(100vh - 160px); min-height: 420px; gap: 2px; }
+    article { min-width: 0; display: flex; flex-direction: column; background: #213448; }
+    article h2 { margin: 0; padding: 6px 12px; font-size: 16px; }
+    article:first-child h2 { color: #78bbff; }
+    article:last-child h2 { color: #ffad70; }
+    iframe { display: block; border: 0; width: 100%; flex: 1; background: #eee; }
+    @media (max-width: 850px) {
+      main { grid-template-columns: 1fr; height: auto; }
+      iframe { height: 410px; flex: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>HW3 双人本地测试</h1>
+    <p>下方两个页面会自动进入 coop_carry 并选择不同角色。等两边就绪后，点击「同时抓取」，再拖动滑块。</p>
+    <div class="controls">
+      <button id="grab" disabled>同时抓取</button>
+      <label>移动箱子 <input id="move" type="range" min="0" max="1.5" step="0.01" value="0" disabled> <output id="distance">0.00</output> m</label>
+      <button id="reset" disabled>重置任务</button>
+    </div>
+    <div id="status" role="status">正在连接两个客户端…</div>
+  </header>
+  <main>
+    <article><h2>Player 1 · 蓝色左把手</h2><iframe id="player1" src="/" title="Player 1"></iframe></article>
+    <article><h2>Player 2 · 橙色右把手</h2><iframe id="player2" src="/" title="Player 2"></iframe></article>
+  </main>
+  <script>
+    const frames = [document.getElementById('player1'), document.getElementById('player2')];
+    const grab = document.getElementById('grab');
+    const move = document.getElementById('move');
+    const reset = document.getElementById('reset');
+    const distance = document.getElementById('distance');
+    const status = document.getElementById('status');
+    const sceneRequested = [false, false];
+    const roleRequested = [false, false];
+    const loadedDocuments = [null, null];
+
+    const panel = i => frames[i].contentDocument?.querySelector('[aria-label="Desktop co-op test controls"]');
+    const childButton = (i, selector) => panel(i)?.querySelector(selector);
+    const holding = i => childButton(i, '[data-grab]')?.textContent === 'Release handle';
+
+    function update() {
+      frames.forEach((frame, i) => {
+        if (loadedDocuments[i] !== frame.contentDocument) {
+          loadedDocuments[i] = frame.contentDocument;
+          sceneRequested[i] = false;
+          roleRequested[i] = false;
+        }
+        const child = frame.contentWindow;
+        const sceneButton = [...(frame.contentDocument?.querySelectorAll('button') || [])]
+          .find(button => button.textContent.trim() === 'coop_carry');
+        if (!sceneRequested[i] && sceneButton) {
+          sceneRequested[i] = true;
+          sceneButton.click();
+        }
+        const roleButton = childButton(i, `[data-role="player${i + 1}"]`);
+        if (child.currentName === 'coop_carry' && !roleRequested[i] && roleButton && !roleButton.disabled) {
+          roleRequested[i] = true;
+          roleButton.click();
+        }
+      });
+
+      const buttons = frames.map((_, i) => childButton(i, '[data-grab]'));
+      const ready = buttons.every(button => button && !button.disabled);
+      const bothHolding = ready && holding(0) && holding(1);
+      const won = frames.some((_, i) => panel(i)?.querySelector('[data-status]')?.textContent.includes('Success'));
+      grab.disabled = !ready || won;
+      grab.textContent = bothHolding ? '松开把手' : '同时抓取';
+      move.disabled = !bothHolding || won;
+      reset.disabled = !childButton(0, '[data-reset]') || childButton(0, '[data-reset]').disabled;
+      status.textContent = won ? '任务完成：两个客户端应同时显示成功。'
+        : bothHolding ? '两人已抓取。把滑块拖到 1.50 m。'
+        : ready ? '两个角色已就绪，点击「同时抓取」。'
+        : '正在加载场景并分配 Player 1 / Player 2…';
+    }
+
+    grab.onclick = () => {
+      const shouldGrab = !(holding(0) && holding(1));
+      frames.forEach((_, i) => {
+        if (holding(i) !== shouldGrab)
+          childButton(i, '[data-grab]')?.click();
+      });
+      update();
+    };
+    move.oninput = () => {
+      distance.value = Number(move.value).toFixed(2);
+      const slider = childButton(0, '[data-move]');
+      if (!slider) return;
+      slider.value = move.value;
+      slider.dispatchEvent(new frames[0].contentWindow.Event('input', { bubbles: true }));
+    };
+    reset.onclick = () => {
+      childButton(0, '[data-reset]')?.click();
+      move.value = 0;
+      distance.value = '0.00';
+      update();
+    };
+    setInterval(update, 250);
+  </script>
+</body>
+</html>
