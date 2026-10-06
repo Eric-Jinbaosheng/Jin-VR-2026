@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HW3 模拟 Player 2</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; background: #101a29; color: #f2f7ff; font: 17px/1.5 Arial, sans-serif; }
+    main { max-width: 940px; margin: auto; }
+    h1 { margin: 0 0 4px; }
+    .intro { color: #bbcadb; margin: 0 0 18px; }
+    .warning { background: #392d1b; border-left: 4px solid #ffad52; padding: 10px 14px; border-radius: 4px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 18px 0; }
+    .card { background: #1a2d42; padding: 16px; border-radius: 10px; border: 2px solid #5c7f9f; }
+    .card.p1 { border-color: #529dff; }
+    .card.p2 { border-color: #f49b55; }
+    .card h2 { margin: 0 0 4px; font-size: 20px; }
+    .card p { margin: 4px 0; }
+    .stage { background: #17283b; border-radius: 10px; padding: 14px; }
+    svg { display: block; width: 100%; height: 215px; }
+    .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin: 18px 0 10px; }
+    button { background: #ffc18b; color: #301a09; border: 0; border-radius: 7px; padding: 11px 17px; font: inherit; font-weight: bold; cursor: pointer; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    input[type=range] { width: min(260px, 50vw); vertical-align: middle; }
+    #status { font-weight: bold; min-height: 25px; }
+    @media (max-width: 650px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>HW3 · 电脑模拟 Player 2</h1>
+    <p class="intro">头显运行真正的 <strong>coop_carry</strong> 场景并选择 Player 1；此电脑页面通过同一服务器占用 Player 2 的橙色右把手。</p>
+    <p class="warning">演示说明：Player 2 在这里由电脑模拟。自动跟随让一位戴头显的演示者也能移动箱子；它不能代替两台真实头显的测试。</p>
+    <section class="grid">
+      <div class="card p1"><h2>Player 1 · VR 头显</h2><p id="p1-status">等待加入…</p><p id="p1-hand">左把手未抓取</p></div>
+      <div class="card p2"><h2>Player 2 · 电脑模拟</h2><p id="p2-status">连接中…</p><p id="p2-hand">右把手未抓取</p></div>
+    </section>
+    <section class="stage" aria-label="Shared box preview">
+      <svg viewBox="0 0 700 210" role="img" aria-label="共享箱子和目标俯视图">
+        <text x="25" y="28" fill="#c3d8e7">起点</text>
+        <text x="566" y="28" fill="#8df5a6">目标</text>
+        <rect x="575" y="55" width="90" height="110" rx="9" fill="#1c7b45" stroke="#78ed9a" stroke-width="3"/>
+        <rect id="box" x="90" y="62" width="120" height="95" rx="9" fill="#8aa3af" stroke="#e3f4ff" stroke-width="3"/>
+        <circle id="left-handle" cx="90" cy="110" r="14" fill="#438dee"/>
+        <circle id="right-handle" cx="210" cy="110" r="14" fill="#f18a43"/>
+      </svg>
+    </section>
+    <div class="controls">
+      <button id="hold" disabled>抓住右把手</button>
+      <label><input id="follow" type="checkbox" checked> 自动跟随 Player 1 的手</label>
+      <label>手动前进 <input id="move" type="range" min="0" max="1.5" step="0.01" value="0" disabled> <output id="distance">0.00</output> m</label>
+      <button id="reset" disabled>重置任务</button>
+    </div>
+    <p id="status" role="status">正在连接课程服务器…</p>
+    <p class="intro">演示顺序：电脑连接后先点「抓住右把手」；头显进入同一服务器，选择 Player 1，抓住蓝色左把手并向前移动。箱子只会在双方都抓住时移动。电脑上的状态和箱子位置来自真实 VR 场景的同步消息。</p>
+  </main>
+  <script type="module">
+    import { CHANNEL, START_BOX, TARGET, HANDLE_OFFSET, GOAL_RADIUS, distance } from './js/scenes/coop_carry_math.js';
+
+    const socketURL = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}`;
+    const messageGlobalPrefix = `__${CHANNEL}_updates__`;
+    const holdButton = document.getElementById('hold');
+    const followInput = document.getElementById('follow');
+    const moveSlider = document.getElementById('move');
+    const resetButton = document.getElementById('reset');
+    const status = document.getElementById('status');
+    let socket, myID = null, connectedClients = [], claimed = false, holding = false;
+    let claims = {}, player1Hand = null, player1Holding = false;
+    let myHand = null, grabStart = null, boxXYZ = START_BOX.slice(), success = false;
+    let outgoing = [];
+
+    const sameID = (a, b) => a !== null && b !== null && String(a) === String(b);
+    const player1ID = () => Object.keys(claims)
+      .filter(id => claims[id] === 'player1' && connectedClients.some(client => sameID(client, id)))
+      .sort((a, b) => Number(a) - Number(b))[0] ?? null;
+    const player2ID = () => Object.keys(claims)
+      .filter(id => claims[id] === 'player2' && connectedClients.some(client => sameID(client, id)))
+      .sort((a, b) => Number(a) - Number(b))[0] ?? null;
+    const connected = () => socket?.readyState === WebSocket.OPEN && myID !== null;
+
+    function queue(message) {
+      if (connected()) outgoing.push(message);
+    }
+    function flush() {
+      if (!connected() || !outgoing.length) return;
+      const value = Object.fromEntries(outgoing.map((message, i) => [i, message]));
+      outgoing = [];
+      socket.send(JSON.stringify({ global: `${messageGlobalPrefix}${myID}`, value }));
+    }
+    function followPlayer1() {
+      if (!holding || !followInput.checked || !player1Holding || !player1Hand) return;
+      const next = [player1Hand[0] + 2 * HANDLE_OFFSET, player1Hand[1], player1Hand[2]];
+      if (myHand && distance(myHand, next) < .005) return;
+      myHand = next;
+      queue({ type: 'HAND_MOVE', player: 'player2', position: next });
+    }
+    function resetLocal() {
+      holding = false;
+      myHand = null;
+      player1Holding = false;
+      player1Hand = null;
+      boxXYZ = START_BOX.slice();
+      success = false;
+      moveSlider.value = 0;
+      document.getElementById('distance').value = '0.00';
+      render();
+    }
+    function receive(sender, message) {
+      if (!message || !connectedClients.some(id => sameID(id, sender))) return;
+      if (message.type === 'PLAYER_SELECT' && ['player1', 'player2'].includes(message.player))
+        claims[sender] = message.player;
+      else if (message.type === 'LEAVE') {
+        const wasPlayer1 = sameID(sender, player1ID());
+        delete claims[sender];
+        if (wasPlayer1) { player1Holding = false; player1Hand = null; }
+      }
+      else if (sameID(sender, player1ID())) {
+        if (message.type === 'GRAB' && Array.isArray(message.position)) {
+          player1Holding = true;
+          player1Hand = message.position;
+          followPlayer1();
+        }
+        else if (message.type === 'HAND_MOVE' && Array.isArray(message.position)) {
+          player1Hand = message.position;
+          followPlayer1();
+        }
+        else if (message.type === 'RELEASE') player1Holding = false;
+        else if (message.type === 'BOX' && Array.isArray(message.position)) {
+          boxXYZ = message.position;
+          success = !!message.success;
+        }
+        else if (message.type === 'RESET') resetLocal();
+      }
+      render();
+    }
+    function render() {
+      const p1 = player1ID();
+      const p2 = player2ID();
+      document.getElementById('p1-status').textContent = p1 === null ? '等待加入…' : `已连接 · 客户端 ${p1}`;
+      document.getElementById('p1-hand').textContent = player1Holding ? '左把手已抓取' : '左把手未抓取';
+      document.getElementById('p2-status').textContent = !connected() ? '服务器连接中…'
+        : !claimed ? '等待占用角色' : !sameID(p2, myID) ? 'Player 2 已被其他客户端占用'
+        : `已连接 · 客户端 ${myID}`;
+      document.getElementById('p2-hand').textContent = holding ? '右把手已抓取' : '右把手未抓取';
+      holdButton.disabled = !connected() || !claimed || (p2 !== null && !sameID(p2, myID)) || success;
+      holdButton.textContent = holding ? '松开右把手' : '抓住右把手';
+      moveSlider.disabled = !holding || followInput.checked || success;
+      resetButton.disabled = !connected() || !claimed;
+      status.textContent = !connected() ? '正在连接课程服务器…'
+        : success ? '合作任务完成！VR 场景和电脑均已同步成功。'
+        : p1 === null ? '电脑 Player 2 已就绪，等待头显选择 Player 1。'
+        : holding && player1Holding ? '两边都已抓取。请在头显中向目标移动。'
+        : holding ? '右把手已抓取，等待头显抓住蓝色左把手。'
+        : 'Player 1 已连接；点击「抓住右把手」。';
+      const progress = Math.max(0, Math.min(1, (START_BOX[2] - boxXYZ[2]) / (START_BOX[2] - TARGET[2])));
+      const x = 90 + 425 * progress;
+      document.getElementById('box').setAttribute('x', x);
+      document.getElementById('left-handle').setAttribute('cx', x);
+      document.getElementById('right-handle').setAttribute('cx', x + 120);
+      document.getElementById('box').setAttribute('fill', success ? '#42c977' : '#8aa3af');
+    }
+
+    holdButton.onclick = () => {
+      if (holding) {
+        holding = false;
+        myHand = null;
+        queue({ type: 'RELEASE', player: 'player2' });
+      }
+      else {
+        grabStart = [boxXYZ[0] + HANDLE_OFFSET, boxXYZ[1], boxXYZ[2]];
+        myHand = grabStart.slice();
+        holding = true;
+        moveSlider.value = 0;
+        document.getElementById('distance').value = '0.00';
+        queue({ type: 'GRAB', player: 'player2', position: myHand.slice() });
+        followPlayer1();
+      }
+      render();
+    };
+    followInput.onchange = () => { followPlayer1(); render(); };
+    moveSlider.oninput = () => {
+      document.getElementById('distance').value = Number(moveSlider.value).toFixed(2);
+      if (!holding || followInput.checked) return;
+      myHand = [grabStart[0], grabStart[1], grabStart[2] - Number(moveSlider.value)];
+      queue({ type: 'HAND_MOVE', player: 'player2', position: myHand.slice() });
+    };
+    resetButton.onclick = () => { queue({ type: 'RESET' }); resetLocal(); };
+
+    setInterval(() => {
+      if (!connected()) return;
+      if (claimed) queue({ type: 'PLAYER_SELECT', player: 'player2' });
+      if (holding && myHand) queue({ type: 'GRAB', player: 'player2', position: myHand.slice() });
+      render();
+    }, 1000);
+    setInterval(flush, 40);
+
+    function connect() {
+      socket = new WebSocket(socketURL);
+      socket.onmessage = event => {
+        let packet;
+        try { packet = JSON.parse(event.data); } catch { return; }
+        if (packet.global === 'clients') {
+          if (myID === null) {
+            myID = packet.value[packet.value.length - 1];
+            claimed = true;
+            claims[myID] = 'player2';
+            queue({ type: 'PLAYER_SELECT', player: 'player2' });
+          }
+          connectedClients = packet.value;
+          for (const id of Object.keys(claims))
+            if (!connectedClients.some(client => sameID(client, id))) delete claims[id];
+          if (player1ID() === null) { player1Holding = false; player1Hand = null; }
+          render();
+        }
+        else if (packet.global?.startsWith(messageGlobalPrefix)) {
+          const sender = packet.global.slice(messageGlobalPrefix.length);
+          for (const message of Object.values(packet.value || {})) receive(sender, message);
+        }
+      };
+      socket.onclose = () => {
+        myID = null;
+        claimed = false;
+        holding = false;
+        outgoing = [];
+        render();
+        setTimeout(connect, 1000);
+      };
+      socket.onerror = () => status.textContent = '连接失败，正在重试…';
+    }
+    connect();
+  </script>
+</body>
+</html>

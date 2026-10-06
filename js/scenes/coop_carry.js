@@ -1,10 +1,9 @@
 /* HW3: two people carry one box by holding their assigned handles together. */
 
 import { ControllerBeam } from "../render/core/controllerInput.js";
-import { START_BOX, TARGET, HANDLE_OFFSET, GOAL_RADIUS,
+import { CHANNEL, START_BOX, TARGET, HANDLE_OFFSET, GOAL_RADIUS,
          distance, midpoint, carriedBoxPosition } from './coop_carry_math.js';
 
-const CHANNEL = 'hw3CarryMessages';
 const GRAB_RADIUS = .18;
 const ROLE = ['player1', 'player2'];
 const COLORS = { player1: [.12, .52, 1], player2: [1, .48, .08] };

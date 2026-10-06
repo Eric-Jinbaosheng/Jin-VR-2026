@@ -10,6 +10,10 @@ Role selection, hand positions, grab and release events, box movement, reset, an
 
 **Desktop test with one person:** Open `http://localhost:2026/hw3_test.html`. This lightweight page creates two independent WebSocket clients in one browser window and assigns Player 1 / Player 2 automatically. Click **两人同时抓取**, then move the slider to **1.50 m**; both clients should display success. Click **重置任务** to repeat. The page tests the course server relay and imports the same carrying geometry as the VR scene. Physical controller interaction still needs a headset test.
 
+**Live demo with one headset:** Keep the course server running and open `http://localhost:2026/hw3_partner.html` on the computer. This page joins the real `coop_carry` message channel as a clearly labeled simulated Player 2. Click **抓住右把手**. On the headset, open the same server, enter `coop_carry`, select Player 1, grab the blue left handle with the right controller, and move toward the green target. The simulated right hand follows Player 1 by default, so the shared box can reach the target with one person wearing a headset. The computer page shows the actual box position and success messages sent by the VR scene. Release Player 1's trigger to demonstrate that the box locks when only Player 2 is holding. Use **重置任务** to repeat.
+
+WebXR needs a secure context. For a Quest connected by USB with Developer Mode and ADB available, `adb reverse tcp:2026 tcp:2026` lets Quest Browser use `http://localhost:2026` to reach the computer's server. Otherwise, use a trusted HTTPS URL for the same server; a plain LAN `http://<computer-ip>:2026` URL may not permit entering XR. The computer page and headset must connect to the same running server. The simulated partner demonstrates the VR plus networking flow, but does not replace a test with two real participants.
+
 ---
 
 # HW2 – Robot Calibration Challenge

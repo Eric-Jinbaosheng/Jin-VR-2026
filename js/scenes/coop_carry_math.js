@@ -1,4 +1,5 @@
 // Shared geometry for the VR scene and its lightweight desktop test.
+export const CHANNEL = 'hw3CarryMessages';
 export const START_BOX = [0, 1.15, -.7];
 export const TARGET = [0, 1.15, -1.45];
 export const HANDLE_OFFSET = .38;
