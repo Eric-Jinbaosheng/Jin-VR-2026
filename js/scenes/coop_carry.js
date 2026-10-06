@@ -1,13 +1,11 @@
 /* HW3: two people carry one box by holding their assigned handles together. */
 
 import { ControllerBeam } from "../render/core/controllerInput.js";
+import { START_BOX, TARGET, HANDLE_OFFSET, GOAL_RADIUS,
+         distance, midpoint, carriedBoxPosition } from './coop_carry_math.js';
 
 const CHANNEL = 'hw3CarryMessages';
-const START_BOX = [0, 1.15, -.7];
-const TARGET = [0, 1.15, -1.45];
-const HANDLE_OFFSET = .38;
 const GRAB_RADIUS = .18;
-const GOAL_RADIUS = .24;
 const ROLE = ['player1', 'player2'];
 const COLORS = { player1: [.12, .52, 1], player2: [1, .48, .08] };
 
@@ -15,8 +13,6 @@ server.init(CHANNEL, {});
 
 let leaveScene = () => {};
 
-const distance = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
-const midpoint = (a, b) => a.map((value, i) => (value + b[i]) / 2);
 const validPosition = p => Array.isArray(p) && p.length === 3 && p.every(Number.isFinite);
 
 export const init = async model => {
@@ -268,7 +264,7 @@ export const init = async model => {
             carryStartMid = mid;
             carryStartBox = boxXYZ.slice();
          }
-         boxXYZ = carryStartBox.map((value, i) => value + mid[i] - carryStartMid[i]);
+         boxXYZ = carriedBoxPosition(carryStartBox, carryStartMid, left.position, right.position);
          if (distance(boxXYZ, TARGET) < GOAL_RADIUS) success = true;
          if (now - lastBoxSend > 50 || success) {
             send({ type: 'BOX', position: boxXYZ.slice(), success });

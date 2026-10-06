@@ -6,114 +6,206 @@
   <title>HW3 双人本地测试</title>
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; background: #0b1520; color: #eaf4ff; font: 15px/1.4 Arial, sans-serif; }
-    header { padding: 12px 18px; background: #15283b; border-bottom: 1px solid #36536c; }
-    h1 { margin: 0 0 4px; font-size: 20px; }
-    p { margin: 3px 0 10px; }
-    .controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    button { border: 0; border-radius: 6px; padding: 9px 15px; background: #75c8ff; color: #082033; font-weight: bold; cursor: pointer; }
+    body { margin: 0; min-height: 100vh; padding: 24px; background: #0b1727; color: #ecf5ff; font: 16px/1.5 Arial, sans-serif; }
+    main { max-width: 980px; margin: auto; }
+    h1 { margin: 0; font-size: 28px; }
+    .note { color: #b9cadd; margin: 5px 0 20px; }
+    .players { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { padding: 18px; border: 2px solid; border-radius: 12px; background: #13263c; }
+    .card.blue { border-color: #438dee; }
+    .card.orange { border-color: #f18a43; }
+    .card h2 { margin: 0 0 6px; font-size: 21px; }
+    .card p { margin: 4px 0; }
+    .stage { margin: 22px 0; border: 1px solid #38546a; border-radius: 12px; background: #102134; padding: 18px; }
+    svg { display: block; width: 100%; max-height: 280px; }
+    .controls { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+    button { border: 0; border-radius: 7px; background: #81caff; color: #082034; padding: 11px 18px; font: inherit; font-weight: bold; cursor: pointer; }
     button:disabled { opacity: .45; cursor: not-allowed; }
-    input[type=range] { width: min(280px, 36vw); vertical-align: middle; }
-    #status { min-height: 20px; margin-top: 8px; color: #bcd6e9; }
-    main { display: grid; grid-template-columns: 1fr 1fr; height: calc(100vh - 160px); min-height: 420px; gap: 2px; }
-    article { min-width: 0; display: flex; flex-direction: column; background: #213448; }
-    article h2 { margin: 0; padding: 6px 12px; font-size: 16px; }
-    article:first-child h2 { color: #78bbff; }
-    article:last-child h2 { color: #ffad70; }
-    iframe { display: block; border: 0; width: 100%; flex: 1; background: #eee; }
-    @media (max-width: 850px) {
-      main { grid-template-columns: 1fr; height: auto; }
-      iframe { height: 410px; flex: none; }
-    }
+    input[type=range] { width: min(350px, 60vw); vertical-align: middle; }
+    #status { min-height: 28px; margin-top: 14px; font-weight: bold; }
+    @media (max-width: 650px) { .players { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-  <header>
+  <main>
     <h1>HW3 双人本地测试</h1>
-    <p>下方两个页面会自动进入 coop_carry 并选择不同角色。等两边就绪后，点击「同时抓取」，再拖动滑块。</p>
+    <p class="note">这个页面会建立两条独立的课程服务器连接，模拟 Player 1 和 Player 2。无需 VR 设备或浏览器插件。</p>
+    <section class="players">
+      <div class="card blue"><h2>Player 1 · 蓝色左把手</h2><p id="p1-connection">连接中…</p><p id="p1-hold">未抓取</p></div>
+      <div class="card orange"><h2>Player 2 · 橙色右把手</h2><p id="p2-connection">连接中…</p><p id="p2-hold">未抓取</p></div>
+    </section>
+    <section class="stage" aria-label="Cooperative carrying preview">
+      <svg viewBox="0 0 700 220" role="img" aria-label="两个把手、箱子和绿色目标的俯视示意">
+        <text x="25" y="30" fill="#c3d8e7">起点</text>
+        <text x="565" y="30" fill="#8df5a6">目标</text>
+        <rect x="575" y="58" width="90" height="110" rx="10" fill="#1c7b45" stroke="#78ed9a" stroke-width="3"/>
+        <rect id="box" x="90" y="65" width="120" height="95" rx="9" fill="#8aa3af" stroke="#e3f4ff" stroke-width="3"/>
+        <circle id="left-handle" cx="90" cy="112" r="14" fill="#438dee"/>
+        <circle id="right-handle" cx="210" cy="112" r="14" fill="#f18a43"/>
+      </svg>
+    </section>
     <div class="controls">
-      <button id="grab" disabled>同时抓取</button>
-      <label>移动箱子 <input id="move" type="range" min="0" max="1.5" step="0.01" value="0" disabled> <output id="distance">0.00</output> m</label>
+      <button id="grab" disabled>两人同时抓取</button>
+      <label>向目标移动 <input id="move" type="range" min="0" max="1.5" step="0.01" value="0" disabled> <output id="distance">0.00</output> m</label>
       <button id="reset" disabled>重置任务</button>
     </div>
-    <div id="status" role="status">正在连接两个客户端…</div>
-  </header>
-  <main>
-    <article><h2>Player 1 · 蓝色左把手</h2><iframe id="player1" src="/" title="Player 1"></iframe></article>
-    <article><h2>Player 2 · 橙色右把手</h2><iframe id="player2" src="/" title="Player 2"></iframe></article>
+    <p id="status" role="status">正在建立两个独立连接…</p>
+    <p class="note">此页验证服务器消息和与 VR 场景共用的箱子位移公式。真实控制器抓取仍需在 <a href="/" style="color:#9cdbff">coop_carry 场景</a>中验证。</p>
   </main>
-  <script>
-    const frames = [document.getElementById('player1'), document.getElementById('player2')];
-    const grab = document.getElementById('grab');
-    const move = document.getElementById('move');
-    const reset = document.getElementById('reset');
-    const distance = document.getElementById('distance');
+  <script type="module">
+    import { START_BOX, TARGET, HANDLE_OFFSET, GOAL_RADIUS,
+             distance, midpoint, carriedBoxPosition } from './js/scenes/coop_carry_math.js';
+
+    const session = crypto.randomUUID();
+    const socketURL = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}`;
+    const roles = ['player1', 'player2'];
+    const clients = [];
+    const grabButton = document.getElementById('grab');
+    const moveSlider = document.getElementById('move');
+    const resetButton = document.getElementById('reset');
     const status = document.getElementById('status');
-    const sceneRequested = [false, false];
-    const roleRequested = [false, false];
-    const loadedDocuments = [null, null];
 
-    const panel = i => frames[i].contentDocument?.querySelector('[aria-label="Desktop co-op test controls"]');
-    const childButton = (i, selector) => panel(i)?.querySelector(selector);
-    const holding = i => childButton(i, '[data-grab]')?.textContent === 'Release handle';
+    const makeState = () => ({
+      player1: { connected: false, holding: false, position: null },
+      player2: { connected: false, holding: false, position: null },
+      box: START_BOX.slice(), success: false, startMidpoint: null, startBox: null
+    });
+    const bothHolding = state => state.player1.holding && state.player2.holding;
 
-    function update() {
-      frames.forEach((frame, i) => {
-        if (loadedDocuments[i] !== frame.contentDocument) {
-          loadedDocuments[i] = frame.contentDocument;
-          sceneRequested[i] = false;
-          roleRequested[i] = false;
-        }
-        const child = frame.contentWindow;
-        const sceneButton = [...(frame.contentDocument?.querySelectorAll('button') || [])]
-          .find(button => button.textContent.trim() === 'coop_carry');
-        if (!sceneRequested[i] && sceneButton) {
-          sceneRequested[i] = true;
-          sceneButton.click();
-        }
-        const roleButton = childButton(i, `[data-role="player${i + 1}"]`);
-        if (child.currentName === 'coop_carry' && !roleRequested[i] && roleButton && !roleButton.disabled) {
-          roleRequested[i] = true;
-          roleButton.click();
-        }
-      });
-
-      const buttons = frames.map((_, i) => childButton(i, '[data-grab]'));
-      const ready = buttons.every(button => button && !button.disabled);
-      const bothHolding = ready && holding(0) && holding(1);
-      const won = frames.some((_, i) => panel(i)?.querySelector('[data-status]')?.textContent.includes('Success'));
-      grab.disabled = !ready || won;
-      grab.textContent = bothHolding ? '松开把手' : '同时抓取';
-      move.disabled = !bothHolding || won;
-      reset.disabled = !childButton(0, '[data-reset]') || childButton(0, '[data-reset]').disabled;
-      status.textContent = won ? '任务完成：两个客户端应同时显示成功。'
-        : bothHolding ? '两人已抓取。把滑块拖到 1.50 m。'
-        : ready ? '两个角色已就绪，点击「同时抓取」。'
-        : '正在加载场景并分配 Player 1 / Player 2…';
+    function send(client, message) {
+      if (client.socket.readyState !== WebSocket.OPEN) return;
+      client.socket.send(JSON.stringify({ hw3TestSession: session, ...message }));
+      apply(client, message);
     }
 
-    grab.onclick = () => {
-      const shouldGrab = !(holding(0) && holding(1));
-      frames.forEach((_, i) => {
-        if (holding(i) !== shouldGrab)
-          childButton(i, '[data-grab]')?.click();
+    function apply(client, message) {
+      const state = client.state;
+      const player = state[message.player];
+      if (message.type === 'PLAYER_SELECT' && player)
+        player.connected = true;
+      else if (message.type === 'GRAB' && player) {
+        player.holding = true;
+        player.position = message.position.slice();
+      }
+      else if (message.type === 'HAND_MOVE' && player)
+        player.position = message.position.slice();
+      else if (message.type === 'RELEASE' && player)
+        player.holding = false;
+      else if (message.type === 'BOX') {
+        state.box = message.position.slice();
+        state.success = message.success;
+      }
+      else if (message.type === 'RESET') {
+        const connected1 = state.player1.connected;
+        const connected2 = state.player2.connected;
+        client.state = makeState();
+        client.state.player1.connected = connected1;
+        client.state.player2.connected = connected2;
+      }
+
+      const current = client.state;
+      const handChanged = ['GRAB', 'HAND_MOVE', 'RELEASE'].includes(message.type);
+      if (handChanged && client.role === 'player1' && !current.success && bothHolding(current)) {
+        if (!current.startMidpoint) {
+          current.startMidpoint = midpoint(current.player1.position, current.player2.position);
+          current.startBox = current.box.slice();
+        }
+        const nextBox = carriedBoxPosition(current.startBox, current.startMidpoint,
+                                            current.player1.position, current.player2.position);
+        send(client, { type: 'BOX', position: nextBox,
+                       success: distance(nextBox, TARGET) < GOAL_RADIUS });
+      }
+      else if (!bothHolding(current)) current.startMidpoint = null;
+      render();
+    }
+
+    function render() {
+      for (let i = 0; i < clients.length; i++) {
+        const client = clients[i];
+        const prefix = i ? 'p2' : 'p1';
+        document.getElementById(`${prefix}-connection`).textContent =
+          client.id === null ? '连接中…' : `已连接 · 客户端 ${client.id}`;
+        document.getElementById(`${prefix}-hold`).textContent =
+          client.state[client.role].holding ? '已抓住把手' : '未抓取';
+      }
+      const ready = clients.length === 2 && clients.every(client =>
+        client.id !== null && client.state.player1.connected && client.state.player2.connected);
+      const held = ready && clients.every(client => bothHolding(client.state));
+      const success = ready && clients.every(client => client.state.success);
+      grabButton.disabled = !ready || success;
+      grabButton.textContent = held ? '两人松开' : '两人同时抓取';
+      moveSlider.disabled = !held || success;
+      resetButton.disabled = !ready;
+      status.textContent = success ? '成功！两个客户端都收到了任务完成状态。'
+        : held ? '两人已抓取。把滑块移到 1.50 m。'
+        : ready ? '两个角色已连接。点击「两人同时抓取」。'
+        : '正在建立两个独立连接…';
+      const z = clients[0]?.state.box[2] ?? START_BOX[2];
+      const progress = Math.max(0, Math.min(1, (START_BOX[2] - z) / (START_BOX[2] - TARGET[2])));
+      const x = 90 + 425 * progress;
+      document.getElementById('box').setAttribute('x', x);
+      document.getElementById('left-handle').setAttribute('cx', x);
+      document.getElementById('right-handle').setAttribute('cx', x + 120);
+      document.getElementById('box').setAttribute('fill', success ? '#42c977' : '#8aa3af');
+    }
+
+    function connect(role) {
+      return new Promise((resolve, reject) => {
+        const client = { role, id: null, state: makeState(), socket: new WebSocket(socketURL) };
+        clients.push(client);
+        const timeout = setTimeout(() => reject(new Error('连接超时')), 7000);
+        client.socket.onmessage = event => {
+          let message;
+          try { message = JSON.parse(event.data); } catch { return; }
+          if (message.global === 'clients' && client.id === null) {
+            client.id = message.value[message.value.length - 1];
+            clearTimeout(timeout);
+            render();
+            resolve(client);
+          }
+          else if (message.hw3TestSession === session) apply(client, message);
+        };
+        client.socket.onerror = () => {
+          clearTimeout(timeout);
+          reject(new Error('WebSocket 连接失败'));
+        };
+        client.socket.onclose = () => {
+          document.getElementById(role === 'player1' ? 'p1-connection' : 'p2-connection').textContent = '连接已断开';
+          grabButton.disabled = true;
+          moveSlider.disabled = true;
+        };
       });
-      update();
+    }
+
+    grabButton.onclick = () => {
+      const held = clients.every(client => bothHolding(client.state));
+      for (const client of clients) {
+        const position = [client.role === 'player1' ? -HANDLE_OFFSET : HANDLE_OFFSET,
+                          START_BOX[1], START_BOX[2]];
+        send(client, held ? { type: 'RELEASE', player: client.role }
+                          : { type: 'GRAB', player: client.role, position });
+      }
     };
-    move.oninput = () => {
-      distance.value = Number(move.value).toFixed(2);
-      const slider = childButton(0, '[data-move]');
-      if (!slider) return;
-      slider.value = move.value;
-      slider.dispatchEvent(new frames[0].contentWindow.Event('input', { bubbles: true }));
+    moveSlider.oninput = () => {
+      const travel = Number(moveSlider.value);
+      document.getElementById('distance').value = travel.toFixed(2);
+      send(clients[0], { type: 'HAND_MOVE', player: 'player1',
+                         position: [-HANDLE_OFFSET, START_BOX[1], START_BOX[2] - travel] });
     };
-    reset.onclick = () => {
-      childButton(0, '[data-reset]')?.click();
-      move.value = 0;
-      distance.value = '0.00';
-      update();
+    resetButton.onclick = () => {
+      send(clients[0], { type: 'RESET' });
+      moveSlider.value = 0;
+      document.getElementById('distance').value = '0.00';
     };
-    setInterval(update, 250);
+
+    try {
+      await connect(roles[0]);
+      await connect(roles[1]);
+      for (const client of clients) send(client, { type: 'PLAYER_SELECT', player: client.role });
+      render();
+    } catch (error) {
+      status.textContent = `${error.message}。请确认 ./startserver 仍在运行，然后刷新页面。`;
+    }
   </script>
 </body>
 </html>

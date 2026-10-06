@@ -8,7 +8,7 @@ Both players must press and hold the right trigger while their controller is nea
 
 Role selection, hand positions, grab and release events, box movement, reset, and success use the course server's `server.send` / `server.sync` messages. A client leaving the scene or disconnecting releases its role; the remaining player must wait for a new partner. Both headsets need a shared spatial origin for the controller positions to line up with the box.
 
-**Desktop test with one person:** Open `http://localhost:2026/hw3_test.html`. This puts two independent clients in one browser window, selects `coop_carry` and assigns Player 1 / Player 2 automatically. Click **同时抓取**, then move the slider to **1.50 m**; both clients should display success. Click **重置任务** to repeat. The page uses virtual right-hand positions and the same multiplayer messages as VR; physical controller behavior still needs a headset test.
+**Desktop test with one person:** Open `http://localhost:2026/hw3_test.html`. This lightweight page creates two independent WebSocket clients in one browser window and assigns Player 1 / Player 2 automatically. Click **两人同时抓取**, then move the slider to **1.50 m**; both clients should display success. Click **重置任务** to repeat. The page tests the course server relay and imports the same carrying geometry as the VR scene. Physical controller interaction still needs a headset test.
 
 ---
 

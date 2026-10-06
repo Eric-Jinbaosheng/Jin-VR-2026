@@ -349,14 +349,14 @@ try {
       let sendClients = () => {
          let data = JSON.stringify({ global: "clients", value: clients });
          for (var index = 0 ; index < websockets.length ; index++)
-            if (websockets[index])
+            if (websockets[index] && websockets[index].readyState === 1)
                websockets[index].send(data);
       }
       sendClients();
 
       ws.on("message", data => {
          for (var index = 0 ; index < websockets.length ; index++)
-            if (websockets[index] && index != ws.index)
+            if (websockets[index] && websockets[index].readyState === 1 && index != ws.index)
                websockets[index].send(data);
 	 if (readHeader(data) == 'CTdata01') {
 	    holojam.Send(holojam.BuildUpdate('ChalkTalk', [{
