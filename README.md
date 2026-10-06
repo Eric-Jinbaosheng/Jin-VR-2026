@@ -8,6 +8,8 @@ Both players must press and hold the right trigger while their controller is nea
 
 Role selection, hand positions, grab and release events, box movement, reset, and success use the course server's `server.send` / `server.sync` messages. A client leaving the scene or disconnecting releases its role; the remaining player must wait for a new partner. Both headsets need a shared spatial origin for the controller positions to line up with the box.
 
+**Desktop test with one person:** Open `http://localhost:2026` in two browser windows and select `coop_carry` in each. The **DESKTOP CO-OP TEST** panel works with a mouse and does not require XR or a browser emulator. Click Player 1 in one window and Player 2 in the other. After both roles are ready, click **Grab handle** in both windows. Move the slider in the Player 1 window to **1.50 m**. Both windows should display success. Click **Reset task** to repeat without choosing roles again. The panel uses a virtual right-hand position and the same multiplayer messages as VR; physical controller behavior still needs a headset test.
+
 ---
 
 # HW2 – Robot Calibration Challenge

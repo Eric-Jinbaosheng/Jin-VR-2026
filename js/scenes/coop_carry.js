@@ -35,6 +35,10 @@ export const init = async model => {
    let hoveredRole = null;
    let resetHover = false;
    let active = true;
+   let desktopHolding = false;
+   let desktopHandXYZ = null;
+   let desktopGrabStart = null;
+   let desktopSlider = null;
 
    const myID = () => window.clientID;
    const send = message => server.send(CHANNEL, message);
@@ -49,6 +53,7 @@ export const init = async model => {
       if (myRole && String(owners[myRole]) !== String(myID())) {
          myRole = null;
          myHolding = false;
+         desktopHolding = false;
       }
    };
    const currentHand = role => hands[owners[role]];
@@ -62,6 +67,12 @@ export const init = async model => {
       carryStartMid = null;
       carryStartBox = null;
       myHolding = false;
+      desktopHolding = false;
+      desktopHandXYZ = null;
+      if (desktopSlider) {
+         desktopSlider.value = 0;
+         desktopSlider.parentElement.querySelector('[data-distance]').value = '0.00';
+      }
       Object.values(hands).forEach(hand => hand.holding = false);
       if (String(owners.player1) === String(myID()))
          send({ type: 'BOX', position: boxXYZ.slice(), success: false });
@@ -116,6 +127,63 @@ export const init = async model => {
       send({ type: 'PLAYER_SELECT', player: role });
    };
 
+   const grab = position => {
+      if (!myRole || myHolding || success || !owners.player1 || !owners.player2 ||
+          !validPosition(position) || distance(position, handlePosition(myRole)) > GRAB_RADIUS)
+         return false;
+      myHolding = true;
+      hands[myID()] = { position: position.slice(), holding: true };
+      send({ type: 'GRAB', player: myRole, position: position.slice() });
+      return true;
+   };
+   const release = () => {
+      if (!myHolding) return;
+      myHolding = false;
+      desktopHolding = false;
+      if (hands[myID()]) hands[myID()].holding = false;
+      send({ type: 'RELEASE', player: myRole });
+   };
+
+   // Click-to-hold controls let one person operate two browser windows.
+   // They send the same messages as the VR controller.
+   const desktop = document.createElement('section');
+   desktop.setAttribute('aria-label', 'Desktop co-op test controls');
+   desktop.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:10000;width:260px;padding:14px;background:#102132;color:white;border:1px solid #5e8198;border-radius:10px;font:14px Arial,sans-serif;box-shadow:0 4px 20px #0008';
+   desktop.innerHTML = '<strong>DESKTOP CO-OP TEST</strong><p style="margin:8px 0">Open this scene in two browser windows.</p><div style="display:flex;gap:8px"><button data-role="player1">Player 1 · Left</button><button data-role="player2">Player 2 · Right</button></div><p data-status style="min-height:36px;margin:10px 0"></p><button data-grab style="width:100%">Grab handle</button><label style="display:block;margin:12px 0 3px">Move toward target: <output data-distance>0.00</output> m</label><input data-move type="range" min="0" max="1.5" step="0.01" value="0" style="width:100%"><button data-reset style="margin-top:8px">Reset task</button>';
+   document.body.appendChild(desktop);
+   const roleButtons = ROLE.map(role => desktop.querySelector(`[data-role="${role}"]`));
+   const grabButton = desktop.querySelector('[data-grab]');
+   const resetTaskButton = desktop.querySelector('[data-reset]');
+   const desktopStatus = desktop.querySelector('[data-status]');
+   const distanceOutput = desktop.querySelector('[data-distance]');
+   desktopSlider = desktop.querySelector('[data-move]');
+   roleButtons.forEach((button, i) => button.onclick = () => selectRole(ROLE[i]));
+   grabButton.onclick = () => {
+      if (desktopHolding) {
+         release();
+         return;
+      }
+      if (!myRole) return;
+      desktopSlider.value = 0;
+      distanceOutput.value = '0.00';
+      desktopGrabStart = handlePosition(myRole);
+      desktopHandXYZ = desktopGrabStart.slice();
+      desktopHolding = grab(desktopHandXYZ);
+   };
+   desktopSlider.oninput = () => {
+      distanceOutput.value = Number(desktopSlider.value).toFixed(2);
+      if (!desktopHolding) return;
+      desktopHandXYZ = desktopGrabStart.slice();
+      desktopHandXYZ[2] -= Number(desktopSlider.value);
+      hands[myID()] = { position: desktopHandXYZ.slice(), holding: true };
+      send({ type: 'HAND_MOVE', player: myRole, position: desktopHandXYZ.slice() });
+   };
+   resetTaskButton.onclick = () => {
+      if (!myRole) return;
+      resetTask();
+      send({ type: 'RESET' });
+   };
+
    inputEvents.onPress = hand => {
       if (hand !== 'right') return;
       if (!myRole) {
@@ -127,19 +195,10 @@ export const init = async model => {
          send({ type: 'RESET' });
          return;
       }
-      if (success || !owners.player1 || !owners.player2) return;
-      const position = inputEvents.pos(hand);
-      if (!validPosition(position) || distance(position, handlePosition(myRole)) > GRAB_RADIUS)
-         return;
-      myHolding = true;
-      hands[myID()] = { position: position.slice(), holding: true };
-      send({ type: 'GRAB', player: myRole, position: position.slice() });
+      grab(inputEvents.pos(hand));
    };
    inputEvents.onRelease = hand => {
-      if (hand !== 'right' || !myHolding) return;
-      myHolding = false;
-      if (hands[myID()]) hands[myID()].holding = false;
-      send({ type: 'RELEASE', player: myRole });
+      if (hand === 'right' && !desktopHolding) release();
    };
 
    leaveScene = () => {
@@ -150,6 +209,7 @@ export const init = async model => {
       }
       inputEvents.onPress = () => {};
       inputEvents.onRelease = () => {};
+      desktop.remove();
    };
 
    model.animate(() => {
@@ -191,7 +251,7 @@ export const init = async model => {
          lastHeartbeat = now;
       }
       if (myHolding && now - lastHandSend > 50) {
-         const position = inputEvents.pos('right');
+         const position = desktopHolding ? desktopHandXYZ : inputEvents.pos('right');
          if (validPosition(position)) {
             hands[myID()] = { position: position.slice(), holding: true };
             send({ type: 'HAND_MOVE', player: myRole, position: position.slice() });
@@ -243,6 +303,21 @@ export const init = async model => {
          : bothHolding ? 'BOTH HOLDING - MOVE TO TARGET'
          : myHolding ? 'WAITING FOR OTHER PLAYER TO GRAB'
          : 'GRAB YOUR COLORED HANDLE';
+      roleButtons.forEach((button, i) => {
+         const role = ROLE[i];
+         button.disabled = !!myRole || owners[role] !== null || myID() === undefined;
+         button.textContent = `${i ? 'Player 2 · Right' : 'Player 1 · Left'}${owners[role] !== null ? ' · Taken' : ''}`;
+      });
+      grabButton.disabled = !myRole || !owners.player1 || !owners.player2 || success;
+      grabButton.textContent = desktopHolding ? 'Release handle' : 'Grab handle';
+      desktopSlider.disabled = !desktopHolding || success;
+      resetTaskButton.disabled = !myRole;
+      desktopStatus.textContent = success ? 'Success on both clients!'
+         : !myRole ? 'Choose a role above.'
+         : !owners.player1 || !owners.player2 ? 'Waiting for the second player.'
+         : bothHolding ? 'Both holding. Move one slider to 1.50 m to finish.'
+         : myHolding ? 'Waiting for the other player to grab.'
+         : 'Both players: click Grab handle.';
       setText(status, 'status', state, .065);
       status.identity().move(0, 1.69, -.16).scale(.36)
          .color(success ? [.3, 1, .4] : [1, 1, 1]);
