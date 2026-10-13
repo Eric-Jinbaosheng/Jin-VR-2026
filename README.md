@@ -1,3 +1,20 @@
+# HW4: AI Robot Lab
+
+The `ai_robot_lab` scene turns an AI generated JSON mission into a robot workbench. The AI chooses the mission title, instructions, part shapes, colors, sizes, starting positions, and matching target pads. JavaScript validates the response before creating objects and checks placement locally during play. The **Hint** button sends the current mission and progress to AI for a short suggestion.
+
+## Run and play
+
+1. Put `OPENAI_API_KEY=your_key` in a local `.env` file. The file is ignored by Git.
+2. Run `./startserver`, open `http://localhost:2026`, and select `ai_robot_lab` from the scene menu.
+3. Select **Easy**, **Medium**, or **Hard** on the VR panel with the right controller beam and trigger. The choices create 2, 3, or 4 parts.
+4. Move the right controller close to a part, hold the trigger, move it to its matching colored pad, and release. Use **Hint** for AI guidance and **New** for another mission.
+
+In a desktop browser, the lower right panel provides the same AI controls. Click a part and its numbered target, or drag the part onto that target. This lets the full task be demonstrated without a headset. A failed AI request stays visible in the scene; **New** retries it. The scene requires the local server because static hosting alone does not provide `/api/aiquery`.
+
+The AI integration uses the course `AIQuery.askAIJson()` helper for missions and `AIQuery.askAI()` for hints. The earlier `aiquery` example remains available separately. No generated JavaScript is executed. AI data is limited to supported Clay shapes, reachable coordinates, safe sizes, distinct pads, and the selected part count.
+
+---
+
 # HW3 — Two-Player Cooperative Carrying Task
 
 **Scene:** `coop_carry` (`js/scenes/coop_carry.js`)

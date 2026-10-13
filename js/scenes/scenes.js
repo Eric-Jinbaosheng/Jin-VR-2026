@@ -17,6 +17,7 @@ export default () => {
             { name: "beamSphere", path: "./beamSphere.js", public: true },
             { name: "construct" , path: "./construct.js" , public: true },
             { name: "aiquery"   , path: "./aiquery.js"   , public: true },
+            { name: "ai_robot_lab", path: "./ai_robot_lab.js", public: true },
       ]
    };
 }
