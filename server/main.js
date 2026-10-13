@@ -432,7 +432,7 @@ app.route("/api/aiquery").post(function(req, res) {
       ? ((messages[messages.length - 1] && messages[messages.length - 1].content) || "[messages]")
       : queryText;
    openAISharedState.lastQueryId = queryId === undefined ? null : queryId;
-   openAISharedState.lastModel = model || "gpt-5.1";
+   openAISharedState.lastModel = model || process.env.OPENAI_MODEL || "gpt-5.1";
    openAISharedState.lastError = "";
 
    console.log(`[OpenAI] outgoingMessage: ${openAISharedState.outgoingMessage}`);
@@ -450,6 +450,8 @@ app.route("/api/aiquery").post(function(req, res) {
    
    const defaultSystem = "You are a helpful assistant in a WebXR environment. Provide concise, informative responses.";
    const modelToUse = openAISharedState.lastModel;
+   // The server adds the endpoint path. Set OPENAI_BASE_URL to the provider's /v1 base.
+   const apiBaseUrl = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '');
    const useResponses = /-codex\\b/i.test(modelToUse);
 
    const sendSuccess = (responseText, message) => {
@@ -488,7 +490,7 @@ app.route("/api/aiquery").post(function(req, res) {
       if (parallel_tool_calls !== undefined) requestBody.parallel_tool_calls = parallel_tool_calls;
       if (response_format) requestBody.response_format = response_format;
 
-      return fetch('https://api.openai.com/v1/chat/completions', {
+      return fetch(`${apiBaseUrl}/chat/completions`, {
          method: 'POST',
          headers: {
             'Content-Type': 'application/json',
@@ -563,7 +565,7 @@ app.route("/api/aiquery").post(function(req, res) {
       if (parallel_tool_calls !== undefined) requestBody.parallel_tool_calls = parallel_tool_calls;
       if (response_format) requestBody.text = { format: response_format };
 
-      return fetch('https://api.openai.com/v1/responses', {
+      return fetch(`${apiBaseUrl}/responses`, {
          method: 'POST',
          headers: {
             'Content-Type': 'application/json',

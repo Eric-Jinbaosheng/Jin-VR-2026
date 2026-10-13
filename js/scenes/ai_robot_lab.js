@@ -49,10 +49,11 @@ export const init = async model => {
    const desktop = document.createElement('section');
    desktop.setAttribute('aria-label', 'AI Robot Lab desktop controls');
    desktop.style.cssText = 'position:fixed;right:14px;bottom:14px;z-index:10000;width:310px;max-height:70vh;overflow:auto;padding:13px;background:#102432ee;color:#fff;border:1px solid #5bbbd1;border-radius:10px;font:14px Arial,sans-serif;box-shadow:0 5px 20px #0008';
-   desktop.innerHTML = '<strong>AI ROBOT LAB</strong><p data-summary>Select a difficulty to ask AI for a mission.</p><div style="display:flex;gap:5px"><button data-action="easy">Easy</button><button data-action="medium">Medium</button><button data-action="hard">Hard</button><button data-action="new">New mission</button><button data-action="hint">Hint</button></div><p data-message aria-live="polite"></p><div data-parts></div>';
+   desktop.innerHTML = '<strong>AI ROBOT LAB</strong><p data-summary>Select a difficulty to ask AI for a mission.</p><div style="display:flex;gap:5px"><button data-action="easy">Easy</button><button data-action="medium">Medium</button><button data-action="hard">Hard</button><button data-action="new">New mission</button><button data-action="hint">Hint</button></div><p data-message aria-live="polite"></p><p data-hint aria-live="polite"></p><div data-parts></div>';
    document.body.appendChild(desktop);
    const summary = desktop.querySelector('[data-summary]');
    const message = desktop.querySelector('[data-message]');
+   const hintOutput = desktop.querySelector('[data-hint]');
    const partsList = desktop.querySelector('[data-parts]');
    let desktopSelected = null;
 
@@ -64,6 +65,7 @@ export const init = async model => {
    const setHint = value => {
       hint = value;
       hintText.textBox(value, .04);
+      hintOutput.textContent = value;
    };
    const updateProgress = () => {
       const done = parts.filter(p => p.done).length;

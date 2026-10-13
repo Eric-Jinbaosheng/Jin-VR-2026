@@ -4,7 +4,7 @@ The `ai_robot_lab` scene turns an AI generated JSON mission into a robot workben
 
 ## Run and play
 
-1. Put `OPENAI_API_KEY=your_key` in a local `.env` file. The file is ignored by Git.
+1. Put `OPENAI_API_KEY=your_key` in a local `.env` file. The file is ignored by Git. For an OpenAI-compatible provider, also set `OPENAI_BASE_URL=https://api.zhizengzeng.com/v1` (or that provider's `/v1` base). The server appends `/chat/completions`; without this setting it uses the official OpenAI endpoint. `OPENAI_MODEL` can override the default `gpt-5.1` model.
 2. Run `./startserver`, open `http://localhost:2026`, and select `ai_robot_lab` from the scene menu.
 3. Select **Easy**, **Medium**, or **Hard** on the VR panel with the right controller beam and trigger. The choices create 2, 3, or 4 parts.
 4. Move the right controller close to a part, hold the trigger, move it to its matching colored pad, and release. Use **Hint** for AI guidance and **New** for another mission.
