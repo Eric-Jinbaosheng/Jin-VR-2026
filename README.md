@@ -1,3 +1,41 @@
+# HW5: AI Workcell Builder + SO101 Visualizer
+
+HW5 has two scenes. `ai_workcell` asks AI for a JSON description of a robot workcell and turns the validated objects into Clay geometry. `SO101` extends the instructor's STL-based SO101 scene with live robot annotations and controls. Neither scene runs AI-generated JavaScript or substitutes the earlier homemade robot for SO101.
+
+## Run
+
+1. Keep the local `.env` configuration described under HW4, then run `./startserver` and open `http://localhost:2026`.
+2. Select **ai_workcell**. Enter a description such as `Generate a robot warehouse with 3 shelves and 10 boxes`, choose **5**, **20**, or **50** objects, and press **Generate Scene**. **Clear Scene** removes the result; **Next preset** offers two other workcell descriptions. The in-world panel also has controller-beam buttons for Generate, Clear, Count, and Preset. Free-text entry is in the desktop overlay, including when the browser is mirrored to a headset.
+3. Select **SO101**. Drag any of the six desktop sliders, or use the in-world **Joint**, **- Angle**, **+ Angle**, **Target**, **Auto**, and **Labels** buttons with the right controller beam. The desktop overlay also has **Clear trail**.
+
+## Part 1: AI geometry
+
+`js/scenes/ai_workcell_data.js` defines the JSON prompt and validation. AI chooses each object's name, Clay primitive (`cube`, `sphere`, `tubeY`, `coneY`, or `pyramidY`), center, half-size, and RGB color. The scene creates real primitive nodes only after checking shape, object count, finite values, color range, and workspace bounds. Small coordinate or size overshoots are clamped to the platform and counted as adjustments. A failed response leaves the previous workcell visible and shows an error. The **Validated AI JSON** panel exposes the exact data rendered.
+
+For a 20-object prompt that names shelves and boxes, the builder asks AI for shelf components and individual boxes in two requests, then combines the validated results. For 50 objects, it makes five ten-object AI requests in separate spatial sections to avoid one long JSON response. Every section is still AI generated; JavaScript validates and places the primitives. The scene reports possible solid overlaps from an axis-aligned box check. Shelves and stacked parts may produce intentional overlaps, so the number is diagnostic rather than a collision verdict.
+
+One live run with the warehouse prompt, using the configured AI endpoint, gave:
+
+| Requested | Renderable objects | AI calls | Adjusted objects | Possible overlaps | Time |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 5 | 5 | 1 | 3 | 1 | 5 s |
+| 20 | 20 | 2 | 1 | 15 | 19 s |
+| 50 | 50 | 5 | 12 | 67 | 42 s |
+
+These are individual runs, not averages. Earlier single-request trials at 20 and 50 objects failed validation because of out-of-bounds geometry or the wrong object count. The five-object budget cannot literally depict three shelves and ten separate boxes. The 20-object run produced nine shelf-named parts and ten separate box-named primitives; the 50-object run produced ten box-named primitives. Exact shelf construction and clean spacing are not guaranteed. Change the prompt and regenerate if the composition matters.
+
+Run `node tests/hw5_data.mjs` for local schema and batching checks. With the server and AI key configured, run `node tests/hw5_ai_live.mjs` to repeat the 5/20/50 live experiment.
+
+## Part 2: SO101 annotations
+
+`SO101` uses the instructor's link meshes, joint hierarchy, joint limits, and fixed gripper frame. Its six controllable joint angles are displayed both near the arm and in a VR panel. A target marker changes from green to red, and a line plus numeric readout show tool-to-target distance in meters. A colored line records up to 80 recent end-effector path segments. **Labels** toggles the annotations; **Clear trail** resets the path.
+
+The blue horizontal ring and `OUT OF REACH` warning come from sampling the first five joint axes at their lower limit, center, and upper limit (243 poses), then bounding the sampled tool positions. This is an approximate envelope, not a complete reachability or collision test; points near its boundary can be misclassified, and a target inside may still be unreachable at a particular orientation. The gripper slider controls the jaw angle, while the tool position comes from the instructor's fixed `gripper_frame` node.
+
+Desktop browser checks confirmed that moving `shoulder_pan` from 0° to 45° changed the displayed tool distance from 0.05 m to 0.29 m, and cycling to the far target displayed `OUT OF REACH`. The STL model and overlays rendered in that check. A physical headset/controller test is still needed for the in-world beam controls and text readability in stereo.
+
+---
+
 # HW4: AI Robot Lab
 
 The `ai_robot_lab` scene turns an AI generated JSON mission into a robot workbench. The AI chooses the mission title, instructions, part shapes, colors, sizes, starting positions, and matching target pads. JavaScript validates the response before creating objects and checks placement locally during play. The **Hint** button sends the current mission and progress to AI for a short suggestion.

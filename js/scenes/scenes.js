@@ -18,6 +18,9 @@ export default () => {
             { name: "construct" , path: "./construct.js" , public: true },
             { name: "aiquery"   , path: "./aiquery.js"   , public: true },
             { name: "ai_robot_lab", path: "./ai_robot_lab.js", public: true },
+            { name: "ai_workcell", path: "./ai_workcell.js", public: true },
+            { name: "SO101"     , path: "./SO101.js"     , public: true },
+            { name: "SO101_parts", path: "./SO101_parts.js", public: true },
       ]
    };
 }
