@@ -72,7 +72,8 @@ export const init = async model => {
       for (let mesh of meshList)
             stl('SO101/' + mesh.stl);
 
-   let robotBaseFrame = model.add().move(-.1,1.5,0).turnX(-Math.PI/2);
+   // Place the arm in front of the headset, rather than at the viewer's head.
+   let robotBaseFrame = model.add().move(-.1,1.1,-1.1).turnX(-Math.PI/2);
 
    let node = {};                                        // CREATE THE KINEMATIC JOINT HIERARCHY
    node['robotBaseFrame'] = robotBaseFrame;
@@ -130,7 +131,7 @@ export const init = async model => {
       text.child(0).scale(1, 1, .001);
       return text;
    };
-   annotations.add('square').move(-.82, 1.68, -.7).scale(.51, .38, 1).color(.012, .035, .05).dull();
+   annotations.add('square').move(-.72, 1.68, -1.35).scale(.51, .38, 1).color(.012, .035, .05).dull();
    const heading = flatText('SO101 VISUALIZER', .055, [.4, .92, 1]);
    const info = [
       flatText('', .037, [1, 1, 1]),
@@ -163,7 +164,7 @@ export const init = async model => {
       const meshName = `so101_control_${button.id}`;
       clay.defineTextMesh(meshName, button.label);
       return { ...button,
-         node: model.add('square').move(button.x, 1.05, -.72).scale(.13, .05, 1).color(.08, .48, .64).dull(),
+         node: model.add('square').move(button.x, 1.05, -1.35).scale(.13, .05, 1).color(.08, .48, .64).dull(),
          text: model.add(meshName).color(1, 1, 1).dull()
       };
    });
@@ -296,8 +297,8 @@ export const init = async model => {
          sliderInputs.forEach(({ value }, n) => value.textContent = `${joints[n].name}: ${degrees(angles[n])}°`);
          lastText = display;
       }
-      heading.identity().move(-.82, 1.98, -.68).scale(.48);
-      info.forEach((label, n) => label.identity().move(-.82, 1.85 - .11 * n, -.68).scale(.48));
+      heading.identity().move(-.72, 1.98, -1.34).scale(.48);
+      info.forEach((label, n) => label.identity().move(-.72, 1.85 - .11 * n, -1.34).scale(.48));
       jointLabels.forEach((label, n) => {
          const point = node[joints[n].name].getGlobalPos();
          label.identity().move(point[0] + (n % 2 ? .12 : -.12),
@@ -309,7 +310,7 @@ export const init = async model => {
          const hit = beam.hitRect(button.node.getGlobalMatrix()) !== null;
          if (hit) hovering = button.id;
          button.node.color(hit ? [1, .8, .25] : [.08, .48, .64]);
-         button.text.identity().move(button.x - button.label.length * .0095, 1.05, -.70);
+         button.text.identity().move(button.x - button.label.length * .0095, 1.05, -1.34);
       });
    });
 }
