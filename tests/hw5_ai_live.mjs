@@ -24,6 +24,7 @@ for (const count of counts) {
       }, description, count);
       console.log(JSON.stringify({ requested: count, returned: data.objects.length,
          calls, adjustments: data.adjustments, possibleOverlaps: countSolidOverlaps(data.objects), title: data.title,
+         modules: data.objects.map(item => `${item.kind}:${item.name}`),
          shelfNamedParts: data.objects.filter(item => /shelf|rack/i.test(item.name)).length,
          boxNamedParts: data.objects.filter(item => /box|crate/i.test(item.name)).length,
          elapsedSeconds: Math.round((Date.now() - started) / 1000) }));

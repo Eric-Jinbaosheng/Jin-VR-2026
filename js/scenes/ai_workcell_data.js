@@ -2,6 +2,7 @@
 export const WORKCELL = Object.freeze({
    counts: [5, 20, 50],
    shapes: ['cube', 'sphere', 'tubeY', 'coneY', 'pyramidY'],
+   kinds: ['shelf', 'conveyor', 'robot', 'machine', 'workbench', 'crate', 'target', 'barrier', 'tank', 'light'],
    min: [-1.3, .84, -1.7],
    max: [1.3, 2.05, -.3]
 });
@@ -17,18 +18,19 @@ export const workcellPrompt = (description, count, zone, focus, existing = []) =
    const quota = total => zone
       ? Math.floor(total * zone.index / zone.total) - Math.floor(total * (zone.index - 1) / zone.total)
       : total;
-   return `Design a low-poly VR robot workcell from basic geometry only.
+   return `Design a recognizable low-poly VR robot factory from basic geometry modules only.
 User request: ${description}
 ${zone ? `This is section ${zone.index} of ${zone.total}. Make a distinct part of the requested scene. Keep every object's x center and extents within ${zone.xMin}..${zone.xMax}, and z center and extents within ${zone.zMin}..${zone.zMax}.` : ''}
-${boxes && focus !== 'structures' ? `This ${zone ? 'section' : 'scene'} must have exactly ${focus === 'boxes' ? count : quota(boxes)} separate box primitives, each named "box N" or "crate N". Do not represent multiple boxes with one cluster or stack object.` : ''}
-${shelves && focus !== 'boxes' ? `This ${zone ? 'section' : 'scene'} should depict ${quota(shelves)} distinct shelves; each shelf may use several cube parts.` : ''}
-${focus === 'structures' ? `Generate structural components only: make the requested shelves from exactly ${count} simple primitives. Do not include a box, crate, floor, or platform.` : ''}
-${focus === 'boxes' ? `Generate exactly ${count} separate boxes. EVERY object must be a single cube named box_1, box_2, etc. Use varied colors and positions. Do not include any shelf or other object.` : ''}
+${count === 5 ? 'Use five distinct large modules so this reads as a complete factory at a glance: a storage shelf, a conveyor, a compact robot arm, a machine or workbench, and a crate or target. If the user asks for more items than five, depict them symbolically within these five modules.' : ''}
+${boxes && focus !== 'structures' && count >= boxes ? `This ${zone ? 'section' : 'scene'} should have ${focus === 'boxes' ? count : quota(boxes)} separate crate modules, each named "box N" or "crate N".` : ''}
+${shelves && focus !== 'boxes' && count !== 5 ? `This ${zone ? 'section' : 'scene'} should depict ${Math.min(count, quota(shelves))} distinct shelf modules.` : ''}
+${focus === 'structures' ? `Generate exactly ${shelves} shelf modules, plus ${count - shelves} distinct factory modules such as conveyor, robot, workbench, machine or target. Do not include any crate or box module.` : ''}
+${focus === 'boxes' ? `Generate exactly ${count} separate crate modules. EVERY object must have kind "crate", shape "cube", and name box_1, box_2, etc. Do not include any shelf.` : ''}
 ${existing.length ? `These structures already exist; place boxes on or beside them where possible: ${JSON.stringify(existing)}` : ''}
-Return ONLY JSON with keys "title" and "objects". Return exactly ${count} objects, each with keys "name", "shape", "position", "scale", "color".
-Each object must be a meaningful component of the requested scene. A shelf may use separate cubes for posts and boards; boxes, tables, obstacles, conveyor parts and goal zones can use other objects. A floor and platform already exist: do not generate another floor or room shell. Do not return a prefab, mesh URL, code or markdown.
+Return ONLY JSON with keys "title" and "objects". Return exactly ${count} objects, each with keys "name", "kind", "shape", "position", "scale", "color".
+Each object is a meaningful factory MODULE. kind must be one of: ${WORKCELL.kinds.join(', ')}. The renderer will construct each module from multiple simple primitives using your kind, position, scale and color. Shape controls one visible detail primitive. Do not return a prefab, mesh URL, code or markdown. No floor or room shell.
 shape must be one of: ${WORKCELL.shapes.join(', ')}. position is the center [x,y,z] in meters. scale is [half-width,half-height,half-depth] in meters, because Clay primitives extend one unit each way. color is RGB [r,g,b] with components 0..1.
-All geometry must fit above the platform: x extents -1.3..1.3, y extents .84..2.05, z extents -1.7..-.3. Use scale components .025..0.5. Put objects on the platform or stack them deliberately; avoid accidental solid intersections. If ${count} objects cannot depict all requested items, preserve the exact ${count} JSON count and summarize what fits. Keep title under 60 characters and names under 36 characters.`;
+All geometry must fit above the platform: x extents -1.3..1.3, y extents .84..2.05, z extents -1.7..-.3. Use scale components .035..0.5. Large shelf, robot, conveyor and machine modules should be at least .13 wide and .12 deep when space allows. Put module bottoms at y=.85 or stack crates deliberately; avoid accidental solid intersections. Use a coordinated industrial palette with contrasting module colors. If ${count} objects cannot depict all requested items, preserve the exact ${count} JSON count and summarize what fits. Keep title under 60 characters and names under 36 characters.`;
 };
 
 const vec3 = (value, min, max) => Array.isArray(value) && value.length === 3 &&
@@ -44,7 +46,7 @@ export const validateWorkcell = (raw, count) => {
    let adjustments = 0;
    const objects = raw.objects.map((item, index) => {
       if (!item || typeof item.name !== 'string' || !item.name.trim() || item.name.length > 36 ||
-          !WORKCELL.shapes.includes(item.shape) || !vec3(item.position, -2, 2.5) ||
+          !WORKCELL.kinds.includes(item.kind) || !WORKCELL.shapes.includes(item.shape) || !vec3(item.position, -2, 2.5) ||
           !vec3(item.scale, .005, 1.3) || !vec3(item.color, 0, 1))
          throw new Error(`Object ${index + 1} has an invalid name, shape, position, size or color`);
       const maxScale = item.shape === 'cube' ? [1.3, .55, .7] : [.5, .5, .5];
@@ -61,7 +63,7 @@ export const validateWorkcell = (raw, count) => {
       }
       if (scale.some((v, axis) => v !== item.scale[axis]) ||
           position.some((v, axis) => v !== item.position[axis])) adjustments++;
-      return { name: item.name.trim(), shape: item.shape,
+      return { name: item.name.trim(), kind: item.kind, shape: item.shape,
          position, scale, color: item.color.slice() };
    });
    return { title: raw.title.trim(), objects, adjustments };
@@ -94,7 +96,7 @@ export const requestWorkcell = async (askJson, description, count, onProgress = 
    if (!WORKCELL.counts.includes(count)) throw new Error('Unsupported object count');
    const boxes = requestedCount(description, 'box', 'boxes');
    const shelves = requestedCount(description, 'shelf', 'shelves');
-   const splitWarehouse = count === 20 && boxes > 0 && boxes < count && shelves > 0;
+   const splitWarehouse = count === 20 && boxes > 0 && boxes < count && shelves > 0 && shelves <= count - boxes;
    const batches = count === 50
       ? zones.map((zone, i) => ({ expected: 10, zone: { ...zone, index: i + 1, total: 5 } }))
       : splitWarehouse
@@ -113,11 +115,20 @@ export const requestWorkcell = async (askJson, description, count, onProgress = 
                : focus === 'boxes' ? `Create ${boxes} separate boxes for a robot warehouse` : description;
             data = validateWorkcell(await askJson(workcellPrompt(focusedDescription, expected, zone, focus,
                focus === 'boxes' ? all : [])), expected);
+            if (count === 5) {
+               const kinds = new Set(data.objects.map(item => item.kind));
+               if (!kinds.has('shelf') || !kinds.has('conveyor') || !kinds.has('robot') ||
+                   !['machine', 'workbench'].some(kind => kinds.has(kind)) ||
+                   !['crate', 'target'].some(kind => kinds.has(kind)))
+                  throw new Error('AI did not produce a complete five-module factory');
+            }
             if (focus === 'boxes' && data.objects.some(item =>
-               item.shape !== 'cube' || !/box|crate/i.test(item.name)))
+               item.kind !== 'crate' || item.shape !== 'cube' || !/box|crate/i.test(item.name)))
                throw new Error('AI did not return separate box primitives');
-            if (focus === 'structures' && data.objects.some(item => /box|crate/i.test(item.name)))
+            if (focus === 'structures' && data.objects.some(item => item.kind === 'crate' || /box|crate/i.test(item.name)))
                throw new Error('AI mixed boxes into the shelf section');
+            if (focus === 'structures' && data.objects.filter(item => item.kind === 'shelf').length !== shelves)
+               throw new Error(`AI did not return ${shelves} distinct shelves`);
             break;
          } catch (error) {
             if (attempt === 3) throw error;

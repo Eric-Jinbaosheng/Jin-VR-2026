@@ -5,7 +5,7 @@ const source = await fs.readFile(new URL('../js/scenes/ai_workcell_data.js', imp
 const { validateWorkcell, requestWorkcell } =
    await import('data:text/javascript,' + encodeURIComponent(source));
 const make = count => ({ title: 'Robot workcell', objects: Array.from({ length: count }, (_, i) => ({
-   name: `Part ${i + 1}`, shape: 'cube',
+   name: `Part ${i + 1}`, kind: 'crate', shape: 'cube',
    position: [-1.1 + (i % 10) * .22, 1, -1.5 + Math.floor(i / 10) * .22],
    scale: [.04, .04, .04], color: [.2, .5, .8]
 })) });
@@ -13,6 +13,7 @@ const make = count => ({ title: 'Robot workcell', objects: Array.from({ length: 
 for (const count of [5, 20, 50]) assert.equal(validateWorkcell(make(count), count).objects.length, count);
 for (const change of [
    data => data.objects[0].shape = 'mesh',
+   data => data.objects[0].kind = 'spaceship',
    data => data.objects[0].scale = [0, .1, .1],
    data => data.objects[0].position = [2, 1, -1],
    data => data.objects.pop()
@@ -37,10 +38,25 @@ let warehouseCalls = 0;
 const warehouse = await requestWorkcell(async prompt => {
    warehouseCalls++;
    const data = make(10);
-   data.objects.forEach((item, i) => item.name = `${warehouseCalls === 1 ? 'shelf' : 'box'}_${i + 1}`);
-   assert.match(prompt, warehouseCalls === 1 ? /structural components only/ : /EVERY object/);
+   data.objects.forEach((item, i) => {
+      item.name = warehouseCalls === 1 && i < 3 ? `shelf_${i + 1}` :
+         warehouseCalls === 1 ? `machine_${i + 1}` : `box_${i + 1}`;
+      item.kind = warehouseCalls === 1 ? (i < 3 ? 'shelf' : 'machine') : 'crate';
+   });
+   assert.match(prompt, warehouseCalls === 1 ? /factory modules/ : /EVERY object/);
    return data;
 }, 'Generate a robot warehouse with 3 shelves and 10 boxes', 20);
 assert.equal(warehouseCalls, 2);
+assert.equal(warehouse.objects.filter(item => item.kind === 'shelf').length, 3);
 assert.equal(warehouse.objects.filter(item => /box/i.test(item.name)).length, 10);
+let fiveCalls = 0;
+const five = await requestWorkcell(async () => {
+   fiveCalls++;
+   const data = make(5);
+   if (fiveCalls > 1) data.objects.forEach((item, i) =>
+      item.kind = ['shelf', 'conveyor', 'robot', 'machine', 'crate'][i]);
+   return data;
+}, 'Create a small robot factory', 5);
+assert.equal(fiveCalls, 2);
+assert.equal(five.objects.length, 5);
 console.log('HW5 data validation and 50-object batching passed');

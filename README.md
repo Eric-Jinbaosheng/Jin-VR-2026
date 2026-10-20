@@ -1,30 +1,32 @@
 # HW5: AI Workcell Builder + SO101 Visualizer
 
-HW5 has two scenes. `ai_workcell` asks AI for a JSON description of a robot workcell and turns the validated objects into Clay geometry. `SO101` extends the instructor's STL-based SO101 scene with live robot annotations and controls. Neither scene runs AI-generated JavaScript or substitutes the earlier homemade robot for SO101.
+HW5 has two scenes. `ai_workcell` asks AI for a JSON description of a robot factory and turns the validated modules into Clay geometry. `SO101` extends the instructor's STL-based SO101 scene with live robot annotations and controls. Neither scene runs AI-generated JavaScript or substitutes the earlier homemade robot for SO101.
 
 ## Run
 
 1. Keep the local `.env` configuration described under HW4, then run `./startserver` and open `http://localhost:2026`.
-2. Select **ai_workcell**. Enter a description such as `Generate a robot warehouse with 3 shelves and 10 boxes`, choose **5**, **20**, or **50** objects, and press **Generate Scene**. **Clear Scene** removes the result; **Next preset** offers two other workcell descriptions. The in-world panel also has controller-beam buttons for Generate, Clear, Count, and Preset. Free-text entry is in the desktop overlay, including when the browser is mirrored to a headset.
+2. Select **ai_workcell**. Enter a description such as `Generate a robot warehouse with 3 shelves and 10 boxes`, choose **5**, **20**, or **50** modules, and press **Generate Scene**. **Inspect next** highlights each AI module and identifies its kind; click a module name in the desktop list to jump to it. **Clear Scene** removes the result; **Next preset** offers two other workcell descriptions. The in-world panel has controller-beam buttons for Build, Clear, Count, Preset, and Inspect. Free-text entry is in the desktop overlay, including when the browser is mirrored to a headset.
 3. Select **SO101**. Drag any of the six desktop sliders, or use the in-world **Joint**, **- Angle**, **+ Angle**, **Target**, **Auto**, and **Labels** buttons with the right controller beam. The desktop overlay also has **Clear trail**.
 
 ## Part 1: AI geometry
 
-`js/scenes/ai_workcell_data.js` defines the JSON prompt and validation. AI chooses each object's name, Clay primitive (`cube`, `sphere`, `tubeY`, `coneY`, or `pyramidY`), center, half-size, and RGB color. The scene creates real primitive nodes only after checking shape, object count, finite values, color range, and workspace bounds. Small coordinate or size overshoots are clamped to the platform and counted as adjustments. A failed response leaves the previous workcell visible and shows an error. The **Validated AI JSON** panel exposes the exact data rendered.
+`js/scenes/ai_workcell_data.js` defines the JSON prompt and validation. AI chooses each module's name, semantic kind, detail primitive (`cube`, `sphere`, `tubeY`, `coneY`, or `pyramidY`), center, half-size, and RGB color. `js/scenes/ai_workcell_factory.js` expands each AI module into a small assembly of real Clay primitives. A shelf has posts and decks; a conveyor has rails, belt and moving cargo; a robot has articulated links and gripper; machines, benches, crates, targets, barriers, tanks and lights have their own geometric details. The gridded floor and back wall provide a fixed visual frame. The AI still decides which modules appear and where they go. No ready-made 3D factory model is loaded.
 
-For a 20-object prompt that names shelves and boxes, the builder asks AI for shelf components and individual boxes in two requests, then combines the validated results. For 50 objects, it makes five ten-object AI requests in separate spatial sections to avoid one long JSON response. Every section is still AI generated; JavaScript validates and places the primitives. The scene reports possible solid overlaps from an axis-aligned box check. Shelves and stacked parts may produce intentional overlaps, so the number is diagnostic rather than a collision verdict.
+The scene validates kind, shape, exact module count, finite numbers, color range and workspace bounds before rendering. Small coordinate or size overshoots are clamped to the platform and counted as adjustments. A failed response leaves the previous factory visible and shows an error. The **Validated AI JSON** panel exposes the AI data used to build it. Five modules are intentionally five *assemblies*, not five individual cubes: the short prompt asks for a shelf, conveyor, robot, machine and crate so the result reads as a complete miniature workcell.
+
+For a 20-module prompt that names shelves and boxes, the builder asks AI for factory equipment and individual crate modules in two requests, then combines the validated results. For 50 modules, it makes five ten-module AI requests in separate spatial sections to avoid one long JSON response. Every section is still AI generated; JavaScript validates and constructs the modules. The scene reports possible solid overlaps from an axis-aligned box check. Shelves and stacked parts may overlap intentionally, so the number is diagnostic rather than a collision verdict.
 
 One live run with the warehouse prompt, using the configured AI endpoint, gave:
 
-| Requested | Renderable objects | AI calls | Adjusted objects | Possible overlaps | Time |
+| Requested modules | Returned modules | AI calls | Adjusted modules | Possible overlaps | Time |
 | ---: | ---: | ---: | ---: | ---: | ---: |
-| 5 | 5 | 1 | 3 | 1 | 5 s |
-| 20 | 20 | 2 | 1 | 15 | 19 s |
-| 50 | 50 | 5 | 12 | 67 | 42 s |
+| 5 | 5 | 1 | 3 | 2 | 13 s |
+| 20 | 20 | 2 | 0 | 21 | 24 s |
+| 50 | 50 | 5 | 8 | 54 | 85 s |
 
-These are individual runs, not averages. Earlier single-request trials at 20 and 50 objects failed validation because of out-of-bounds geometry or the wrong object count. The five-object budget cannot literally depict three shelves and ten separate boxes. The 20-object run produced nine shelf-named parts and ten separate box-named primitives; the 50-object run produced ten box-named primitives. Exact shelf construction and clean spacing are not guaranteed. Change the prompt and regenerate if the composition matters.
+These are individual runs, not averages. The five-module run returned one shelf, one conveyor, one robot, one machine and one crate. The 20-module run returned three shelves, a conveyor, robot, bench, machine, target, barrier, light and ten separate boxes. The 50-module run met the JSON count but sometimes described shelf or robot *parts* as separate modules, which can create duplicate assembled equipment and crowding. This is a useful prompt limit to show in the 5/20/50 comparison; the 20-module layout is the clearest warehouse demo. Five modules cannot literally represent three separate shelves and ten separate boxes, so the five-module view symbolizes the request. Exact spacing is not guaranteed; change the prompt and regenerate if the composition matters.
 
-Run `node tests/hw5_data.mjs` for local schema and batching checks. With the server and AI key configured, run `node tests/hw5_ai_live.mjs` to repeat the 5/20/50 live experiment.
+Run `node tests/hw5_data.mjs` for schema and batching checks and `node tests/hw5_factory.mjs` for all ten geometric module builders. With the server and AI key configured, run `node tests/hw5_ai_live.mjs` to repeat the 5/20/50 live experiment. An isolated headless Chrome visual check stalled in this environment after entering the course scene, so the revised composition and controller readability still need a Quest display check.
 
 ## Part 2: SO101 annotations
 
