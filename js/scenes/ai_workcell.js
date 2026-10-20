@@ -1,7 +1,7 @@
 /* HW5 Part 1: AI describes geometry; validated JSON becomes Clay primitives. */
 import { AIQuery } from '../util/aiquery.js';
 import { ControllerBeam } from '../render/core/controllerInput.js';
-import { WORKCELL, requestWorkcell, countSolidOverlaps } from './ai_workcell_data.js';
+import { WORKCELL, requestWorkcell, requestFactoryDetails, countSolidOverlaps } from './ai_workcell_data.js';
 import { buildFactoryModule } from './ai_workcell_factory.js';
 
 let cleanup = () => {};
@@ -11,7 +11,7 @@ export const init = async model => {
    const beam = new ControllerBeam(model, 'right');
    const generatedRoot = model.add();
    let alive = true, busy = false, count = 20, hovering = null;
-   let modules = [], selected = -1;
+   let modules = [], selected = -1, currentData = null;
    let description = 'Generate a robot warehouse with 3 shelves and 10 boxes';
 
    // A miniature factory floor remains visible in the headset's passthrough view.
@@ -45,20 +45,21 @@ export const init = async model => {
    const countText = flatText('20 MODULES', .043, [1, .87, .4]);
    const detailText = flatText('AI CHOOSES THE FACTORY MODULES', .038, [.68,.88,.95]);
    const buttons = [
-      { id: 'generate', x: -.64, label: 'BUILD' },
-      { id: 'clear', x: -.32, label: 'CLEAR' },
-      { id: 'count', x: 0, label: 'COUNT' },
-      { id: 'preset', x: .32, label: 'PRESET' },
-      { id: 'inspect', x: .64, label: 'INSPECT' }
+      { id: 'generate', x: -.68, label: 'BUILD' },
+      { id: 'clear', x: -.41, label: 'CLEAR' },
+      { id: 'count', x: -.14, label: 'COUNT' },
+      { id: 'preset', x: .14, label: 'PRESET' },
+      { id: 'inspect', x: .41, label: 'INSPECT' },
+      { id: 'detail', x: .68, label: 'AI DETAIL' }
    ].map(button => ({ ...button,
-      node: model.add('square').move(button.x, 1.33, -1.77).scale(.14, .048, 1).color(.07, .48, .62).dull(),
+      node: model.add('square').move(button.x, 1.33, -1.77).scale(.125, .048, 1).color(.07, .48, .62).dull(),
       text: flatText(button.label, .045, [1, 1, 1])
    }));
 
    const desktop = document.createElement('section');
    desktop.setAttribute('aria-label', 'HW5 AI Workcell controls');
    desktop.style.cssText = 'position:fixed;right:14px;bottom:14px;z-index:10000;width:340px;max-height:75vh;overflow:auto;padding:14px;background:#102432ee;color:white;border:1px solid #5bbbd1;border-radius:10px;font:14px Arial,sans-serif';
-   desktop.innerHTML = '<strong>AI ROBOT FACTORY</strong><p>AI places factory modules; each is assembled from simple VR geometry.</p><textarea data-prompt rows="3" maxlength="180" style="box-sizing:border-box;width:100%"></textarea><div style="display:flex;gap:5px;flex-wrap:wrap;margin:8px 0"><label>Modules <select data-count><option>5</option><option selected>20</option><option>50</option></select></label><button data-action="generate">Generate Scene</button><button data-action="clear">Clear Scene</button><button data-action="preset">Next preset</button><button data-action="inspect">Inspect next</button></div><p data-status role="status"></p><div data-modules style="max-height:105px;overflow:auto"></div><details><summary>Validated AI JSON</summary><pre data-json style="white-space:pre-wrap;max-height:200px;overflow:auto"></pre></details>';
+   desktop.innerHTML = '<strong>AI ROBOT FACTORY</strong><p>AI places factory modules; each is assembled from simple VR geometry. AI Detail designs three extra primitives for the selected module.</p><textarea data-prompt rows="3" maxlength="180" style="box-sizing:border-box;width:100%"></textarea><div style="display:flex;gap:5px;flex-wrap:wrap;margin:8px 0"><label>Modules <select data-count><option>5</option><option selected>20</option><option>50</option></select></label><button data-action="generate">Generate Scene</button><button data-action="clear">Clear Scene</button><button data-action="preset">Next preset</button><button data-action="inspect">Inspect next</button><button data-action="detail">AI Detail</button></div><p data-status role="status"></p><div data-modules style="max-height:105px;overflow:auto"></div><details><summary>Validated AI JSON</summary><pre data-json style="white-space:pre-wrap;max-height:200px;overflow:auto"></pre></details>';
    document.body.appendChild(desktop);
    const input = desktop.querySelector('[data-prompt]');
    const countInput = desktop.querySelector('[data-count]');
@@ -82,7 +83,7 @@ export const init = async model => {
       selected = (index + modules.length) % modules.length;
       modules.forEach((module, i) => module.visual.select(i === selected));
       const item = modules[selected].item;
-      detailText.textBox(`${selected + 1}/${modules.length} ${item.kind.toUpperCase()}: ${item.name.toUpperCase()}`.slice(0, 55), .038);
+      detailText.textBox(`${selected + 1}/${modules.length} ${item.kind.toUpperCase()}: ${item.name.toUpperCase()}${item.details ? ' + AI DETAIL' : ''}`.slice(0, 55), .038);
       moduleList.querySelectorAll('button').forEach((button, i) => {
          button.style.outline = i === selected ? '2px solid #ffbf39' : '';
       });
@@ -91,7 +92,7 @@ export const init = async model => {
       moduleList.replaceChildren();
       modules.forEach((module, i) => {
          const button = document.createElement('button');
-         button.textContent = `${i + 1}. ${module.item.name} (${module.item.kind})`;
+         button.textContent = `${i + 1}. ${module.item.name} (${module.item.kind})${module.item.details ? ' ✦' : ''}`;
          button.style.cssText = 'display:block;width:100%;margin:2px 0;text-align:left;background:#173a48;color:white;border:0;padding:4px';
          button.onclick = () => inspect(i);
          moduleList.appendChild(button);
@@ -99,7 +100,7 @@ export const init = async model => {
    };
    const clear = () => {
       while (generatedRoot.nChildren()) generatedRoot.remove(0);
-      modules = []; selected = -1;
+      modules = []; selected = -1; currentData = null;
       moduleList.replaceChildren();
       json.textContent = '';
       title.textBox('AI ROBOT FACTORY', .07);
@@ -118,6 +119,7 @@ export const init = async model => {
          if (!alive) return;
          // Keep the previous scene if the response fails validation.
          while (generatedRoot.nChildren()) generatedRoot.remove(0);
+         currentData = data;
          modules = data.objects.map((item, i) => ({ item,
             visual: buildFactoryModule(generatedRoot, item, i, count <= 20) }));
          renderModuleList();
@@ -134,10 +136,30 @@ export const init = async model => {
          console.error('[AI Workcell] Generation failed:', error);
       } finally { busy = false; }
    };
+   const generateDetail = async () => {
+      if (!alive || busy || selected < 0) return;
+      const module = modules[selected];
+      busy = true;
+      setStatus(`AI is designing 3 geometric details for ${module.item.name}...`);
+      try {
+         const details = await requestFactoryDetails(prompt => ai.askAIJson(prompt), module.item);
+         if (!alive || !modules.includes(module)) return;
+         module.visual.setDetails(details);
+         module.item.details = details;
+         json.textContent = JSON.stringify(currentData, null, 2);
+         renderModuleList();
+         inspect(modules.indexOf(module));
+         setStatus(`AI added 3 new primitives to ${module.item.name}. Press AI Detail again for a variation.`);
+      } catch (error) {
+         if (alive) setStatus(`AI detail failed: ${String(error.message).slice(0, 100)}`, true);
+         console.error('[AI Workcell] Detail generation failed:', error);
+      } finally { busy = false; }
+   };
    const action = id => {
       if (id === 'generate') generate();
       if (id === 'clear') clear();
       if (id === 'inspect') inspect(selected + 1);
+      if (id === 'detail') generateDetail();
       if (id === 'count') {
          count = WORKCELL.counts[(WORKCELL.counts.indexOf(count) + 1) % WORKCELL.counts.length];
          countInput.value = String(count);
@@ -173,7 +195,7 @@ export const init = async model => {
          const hit = beam.hitRect(button.node.getGlobalMatrix()) !== null;
          if (hit) hovering = button.id;
          button.node.color(hit ? [1, .8, .25] : [.07, .48, .62]);
-         button.text.identity().move(button.x, 1.33, -1.765).scale(.20);
+         button.text.identity().move(button.x, 1.33, -1.765).scale(.17);
       }
       title.identity().move(0, 1.90, -1.77).scale(.32);
       promptText.identity().move(0, 1.79, -1.77).scale(.28);

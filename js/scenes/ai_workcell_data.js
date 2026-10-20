@@ -69,6 +69,37 @@ export const validateWorkcell = (raw, count) => {
    return { title: raw.title.trim(), objects, adjustments };
 };
 
+// AI can add visible, primitive-level geometry to a selected finished module.
+// Positions and sizes are normalized to that module's dimensions.
+export const factoryDetailPrompt = item => `A VR factory module has already been built from simple shapes.
+Selected module: ${JSON.stringify({ name: item.name, kind: item.kind, color: item.color })}.
+Add exactly three useful visible geometric details to this module. For example, a storage shelf could have a green sphere status light at position [0.55,0.6,0.95], scale [0.12,0.12,0.12], color [0.1,0.9,0.2]. Make details relevant to the selected module, such as controls, sensors, cargo, tools or safety markers. Do not merely copy the shelf example.
+Return ONLY JSON: {"details":[{"name":"...","shape":"cube","position":[0,0,0.9],"scale":[0.15,0.15,0.15],"color":[1,0.5,0]}]}.
+Return exactly 3 details. Shapes: ${WORKCELL.shapes.join(', ')}. Position is normalized to the module center: x and y each -0.7..0.7, z 0.75..1.05 so details appear on the front face. Scale is normalized half-size, each component 0.06..0.3. RGB color components are 0..1. Each name must be under 31 characters. No code, mesh or prefab.`;
+
+export const validateFactoryDetails = raw => {
+   if (!raw || !Array.isArray(raw.details) || raw.details.length !== 3)
+      throw new Error('AI must return exactly three geometric details');
+   return raw.details.map((detail, i) => {
+      if (!detail || typeof detail.name !== 'string' || !detail.name.trim() || detail.name.length > 30 ||
+          !WORKCELL.shapes.includes(detail.shape) || !vec3(detail.position, -1, 1.1) ||
+          detail.position[0] < -.7 || detail.position[0] > .7 ||
+          detail.position[1] < -.7 || detail.position[1] > .7 ||
+          detail.position[2] < .75 || detail.position[2] > 1.05 ||
+          !vec3(detail.scale, .06, .3) || !vec3(detail.color, 0, 1))
+         throw new Error(`AI detail ${i + 1} has invalid geometry`);
+      return { name: detail.name.trim(), shape: detail.shape,
+         position: detail.position.slice(), scale: detail.scale.slice(), color: detail.color.slice() };
+   });
+};
+
+export const requestFactoryDetails = async (askJson, item) => {
+   for (let attempt = 1; attempt <= 3; attempt++) {
+      try { return validateFactoryDetails(await askJson(factoryDetailPrompt(item))); }
+      catch (error) { if (attempt === 3) throw error; }
+   }
+};
+
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 
 // Diagnostic only: shelves, supports and stacked parts can overlap intentionally.

@@ -1,5 +1,5 @@
 // A small vocabulary of factory modules built only from Clay primitives.
-// AI chooses the module, center, dimensions, primary shape and color.
+// AI chooses the module, center, dimensions, detail shape and color.
 const steel = [.10, .17, .21], dark = [.035, .075, .095];
 const cyan = [.14, .83, .94], amber = [1, .67, .16], white = [.79, .92, .96];
 const shade = (rgb, amount) => rgb.map(value => Math.max(0, Math.min(1, value * amount)));
@@ -113,9 +113,19 @@ export const buildFactoryModule = (root, item, index, detailed = true) => {
       part(item.shape, 0, top * .50, 0, sx * .35, sy * .07, sz * .35, dark);
    }
 
+   const detailRoot = group.add();
    const marker = group.add('ringY').move(0, foot + .015, 0).scale(0).color(cyan).dull();
    return {
       update,
+      setDetails: details => {
+         while (detailRoot.nChildren()) detailRoot.remove(0);
+         for (const detail of details)
+            detailRoot.add(detail.shape)
+               .move(sx * detail.position[0], sy * detail.position[1], sz * detail.position[2])
+               .scale(Math.max(sx * detail.scale[0], .018),
+                  Math.max(sy * detail.scale[1], .018), Math.max(sz * detail.scale[2], .018))
+               .color(detail.color).dull();
+      },
       select: selected => marker.identity().move(0, foot + .015, 0)
          .scale(selected ? sx * 1.12 : 0, .006, selected ? sz * 1.12 : 0).color(cyan)
    };

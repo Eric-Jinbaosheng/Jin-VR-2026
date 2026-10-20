@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 
 const source = await fs.readFile(new URL('../js/scenes/ai_workcell_data.js', import.meta.url), 'utf8');
-const { validateWorkcell, requestWorkcell } =
+const { validateWorkcell, requestWorkcell, validateFactoryDetails, requestFactoryDetails } =
    await import('data:text/javascript,' + encodeURIComponent(source));
 const make = count => ({ title: 'Robot workcell', objects: Array.from({ length: count }, (_, i) => ({
    name: `Part ${i + 1}`, kind: 'crate', shape: 'cube',
@@ -59,4 +59,20 @@ const five = await requestWorkcell(async () => {
 }, 'Create a small robot factory', 5);
 assert.equal(fiveCalls, 2);
 assert.equal(five.objects.length, 5);
-console.log('HW5 data validation and 50-object batching passed');
+const detailResponse = { details: ['sphere', 'cube', 'coneY'].map((shape, i) => ({
+   name: `Useful feature ${i + 1}`, shape, position: [0, .2 * i, .9],
+   scale: [.12, .12, .12], color: [1, .5, .2]
+})) };
+assert.equal(validateFactoryDetails(detailResponse).length, 3);
+const badDetails = structuredClone(detailResponse);
+badDetails.details[0].position[2] = -.5;
+assert.throws(() => validateFactoryDetails(badDetails));
+let detailCalls = 0;
+const details = await requestFactoryDetails(async prompt => {
+   detailCalls++;
+   assert.match(prompt, /Selected module/);
+   return detailCalls === 1 ? badDetails : detailResponse;
+}, five.objects[0]);
+assert.equal(detailCalls, 2);
+assert.equal(details.length, 3);
+console.log('HW5 module, detail, and batching validation passed');
