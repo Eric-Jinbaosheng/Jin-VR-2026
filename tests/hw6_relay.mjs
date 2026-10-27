@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+const src=await fs.readFile(new URL('../js/scenes/relay_physics.js',import.meta.url),'utf8');
+const {freshState,launch,step,LOW,HIGH,R}=await import('data:text/javascript,'+encodeURIComponent(src));
+const ids=['1','2'];
+let s=freshState();launch(s);assert.equal(s.balls.length,4);
+step(s,1/120,[],['1']);assert.equal(s.time,90,'pause without partner');
+let b=s.balls[0];b.p=[0,1.3,-1];
+step(s,1/120,[{id:'1',p:[0,1.3,-1],v:[0,0,0]}],ids);
+assert.deepEqual(b.touches,['1']);
+b.p=[0,1.3,-1];step(s,1/120,[{id:'2',p:[0,1.3,-1],v:[0,0,-1]}],ids);
+assert.deepEqual(b.touches,ids);
+b.p=[0,1.3,LOW[2]+R];b.v=[0,0,-1];step(s,1/120,[],ids);assert.equal(s.score,1);
+assert.equal(b.touches.length,0,'scoring clears charge');
+b.p=[0,1.3,LOW[2]+R];b.v=[0,0,-1];b.touches=['1'];step(s,1/120,[],ids);assert.equal(s.score,1,'single player cannot score');
+for(let i=0;i<12000;i++)step(s,1/120,[],ids);
+for(const orb of s.balls)for(let k=0;k<3;k++){assert.ok(Number.isFinite(orb.p[k]));assert.ok(orb.p[k]>=LOW[k]+R-.001&&orb.p[k]<=HIGH[k]-R+.001);}
+assert.equal(s.phase,'over');
+s=freshState();launch(s);s.score=7;s.balls[0].touches=ids;s.balls[0].p=[0,1.3,LOW[2]+R];s.balls[0].v=[0,0,-1];step(s,1/120,[],ids);assert.equal(s.phase,'won');
+launch(s);assert.equal(s.score,0);assert.equal(s.time,90);
+console.log('PASS: partner pause, two-player charge, goal, single-player rejection, bounds, timer, victory, restart');

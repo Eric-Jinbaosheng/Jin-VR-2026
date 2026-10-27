@@ -1,0 +1,46 @@
+Assignment 6 — RELAY: a shared kinetic playground
+
+Scene: relay_arena
+
+RELAY adapts bouncing.js into a cooperative game for two or more players.
+Touch an orb to turn it amber; a second distinct player makes it mint green.
+Send charged orbs through the mint gate. Score eight goals within 90 seconds.
+Two hands from the same player do not count as two participants.
+
+Spatial widgets (using G2.addWidget, following widgets.js):
+- Launch/restart button at the front-left launch dock.
+- Gravity slider above the playing space.
+- Speed slider next to the arena's right side.
+- Shared scoreboard behind the goal.
+
+Multiplayer:
+The lowest active client ID runs fixed-timestep physics and sends snapshots
+through the course server.send/server.sync messaging API. Players share hand
+positions, widget commands, ball contacts, scores, timer and settings. If the
+host leaves, remaining participants elect a replacement. Play pauses with
+fewer than two active players.
+
+Run with Node 18:
+  node server/main.js 2026 2026 http
+Open http://localhost:2026 and select relay_arena in two browser windows.
+Enable desktop paddle in each window and move it with the X/Y/Z sliders.
+In VR, touch orbs with your controllers and use the trigger/ray for widgets.
+Headsets require the course's trusted HTTPS setup and a shared spatial origin.
+The included run-hw6.command uses the author's installed Node 18 runtime;
+other computers should use the command above with their own Node 18 install.
+
+Tests:
+  node tests/hw6_relay.mjs
+Passed: partner pause, distinct-player charging, scoring, single-player
+rejection, long-run bounds, timeout, victory and restart.
+Browser verification: scene rendering and two-client shared start/countdown.
+Physical two-headset verification remains to be done.
+
+Source references:
+https://github.com/futurerealitylab/VR-2026-Fall/blob/main/js/scenes/widgets.js
+https://github.com/futurerealitylab/VR-2026-Fall/blob/main/js/scenes/bouncing.js
+
+Files:
+js/scenes/relay_arena.js — scene, spatial widgets and multiplayer networking
+js/scenes/relay_physics.js — game rules and fixed-timestep simulation
+tests/hw6_relay.mjs — regression tests
