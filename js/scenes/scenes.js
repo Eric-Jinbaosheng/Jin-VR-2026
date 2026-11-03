@@ -2,6 +2,7 @@ export default () => {
    return {
       enableSceneReloading: true,
       scenes: [
+            { name: "neon_city_2099", path: "./neon_city_2099.js", public: true },
             { name: "bouncing", path: "./bouncing.js", public: true },
             { name: "widgets", path: "./widgets.js", public: true },
             { name: "relay_arena", path: "./relay_arena.js", public: true },
