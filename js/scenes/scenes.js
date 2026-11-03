@@ -2,6 +2,8 @@ export default () => {
    return {
       enableSceneReloading: true,
       scenes: [
+            { name: "bouncing", path: "./bouncing.js", public: true },
+            { name: "widgets", path: "./widgets.js", public: true },
             { name: "relay_arena", path: "./relay_arena.js", public: true },
             { name: "simple"    , path: "./simple.js"    , public: true },
             { name: "shapes"    , path: "./shapes.js"    , public: true },
