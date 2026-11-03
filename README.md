@@ -1,3 +1,76 @@
+# NEON CITY 2099 — The Last Light
+
+**Miniature Object & Avatar VR Assignment**
+
+**Submission branch:** `neon-city-2099` · **Scene:** `neon_city_2099`
+
+NEON CITY 2099 is an interactive miniature cyberpunk city built with the course Clay/WebXR framework. In normal mode, the player observes a tabletop city and a 1:12-scale avatar driven by their tracked head and controllers, and can pick up and move the entire city. Switching to miniature mode places the player at the avatar's current viewpoint. From inside the city, the player restores power by activating three nearby terminals, bringing neon signs, reactor rings, hovercars, and the central Nexus Tower online. Returning to normal mode reveals the restored city on the table.
+
+## Assignment requirements
+
+| Requirement | Implementation |
+| --- | --- |
+| A miniature virtual object on a table | A procedural 70 × 45 cm city with ten buildings and three interactive districts. |
+| A miniature avatar of the player | A visible head, torso, and two controller representations driven by tracked poses. |
+| 1:12 scale | Eye height above the tabletop and head/controller motion are divided by 12, using the tracking floor as the reference. |
+| View from the player's physical perspective | Normal mode shows the tabletop city and the miniature avatar. |
+| View from the miniature avatar's perspective | Mode switching preserves the avatar's current eye position and orientation; it does not snap to a preset waypoint. |
+| Pick up and move the object in normal mode | Aim at the city base, hold the right trigger, move the controller, then release. |
+| Size-appropriate interaction in miniature mode | Approach a terminal using the four travel stops, aim at it, and press the right trigger. Activation requires proximity in miniature coordinates. |
+
+The table remains visible at the corresponding enlarged scale in miniature mode. Power state persists when switching viewpoints or moving the city. The scene uses procedural geometry and does not require an AI API.
+
+## Run
+
+With Node 18 and the repository dependencies installed, run from the repository root:
+
+```bash
+npm install
+node server/main.js 2026 2026 http
+```
+
+Open **http://localhost:2026** and select **neon_city_2099**. On the development Mac, `./run-neon-city.command` starts the same server with its installed Node 18 runtime.
+
+For a Quest headset over the network, use a trusted HTTPS origin. The course server supports `node server/main.js 2026 2026 https` with local `key.key` and `cert.cer` files. A plain HTTP LAN address is not sufficient for WebXR. See [setup and technical notes](README_NEON_CITY.md).
+
+## Controls
+
+| Action | Quest controllers | Desktop preview |
+| --- | --- | --- |
+| Grab/move city | Right trigger on the base, in normal mode | Use headset for tracked grabbing |
+| Enter/return | Left X, or right trigger on **ENTER / RETURN** | **M** / Enter-return button |
+| Next travel stop | Left stick click, or right trigger on **NEXT STOP** | **N** / Next-stop button |
+| Activate terminal | Right trigger while nearby, in miniature mode | **E** / Activate-nearby button |
+| Restart mission | Restart from the desktop panel | Restart button |
+
+The default left-controller indices are 4 for X and 3 for stick click. They are configurable in the desktop diagnostics; the in-world buttons provide an alternative if the device mapping differs.
+
+## Suggested demonstration
+
+1. Show the tabletop city and the avatar following head and controller movement.
+2. Pick up, move, and release the city.
+3. Enter the avatar's viewpoint; look around and demonstrate the change in scale.
+4. Travel to Holo Market, Reactor, and Transit Hub and activate each terminal.
+5. Show **CITY ONLINE / 3/3**, then return to normal mode to view the illuminated city.
+
+## Validation and implementation notes
+
+Automated tests cover floor-relative 1:12 tracking, multiple eye heights, crouching, head/controller alignment, viewpoint continuity, teleport/return behavior, proximity checks, and mission completion. Desktop browser testing completed the three-terminal mission and confirmed state persistence on return.
+
+```bash
+node tests/neon_city.mjs
+node tests/neon_city_tracking.mjs
+```
+
+**Physical Quest validation remains pending:** controller mapping/alignment, stereo comfort, and on-device frame rate have not yet been verified. WebXR tracks eye position rather than anatomical height; the head mesh uses an estimated 10.5 cm eye-to-crown offset, also scaled by 1/12.
+
+Main implementation: [scene and input](js/scenes/neon_city_2099.js), [procedural city](js/scenes/neon_city_buildings.js), [coordinate transforms and mission rules](js/scenes/neon_city_math.js). Additional details and the headset acceptance checklist are in [README_NEON_CITY.md](README_NEON_CITY.md).
+
+---
+
+<details>
+<summary>Previous assignments and course documentation</summary>
+
 # HW5: AI Workcell Builder + SO101 Visualizer
 
 HW5 has two scenes. `ai_workcell` asks AI for a JSON description of a robot factory and turns the validated modules into Clay geometry. `SO101` extends the instructor's STL-based SO101 scene with live robot annotations and controls. Neither scene runs AI-generated JavaScript or substitutes the earlier homemade robot for SO101.
@@ -1978,3 +2051,6 @@ Trajectory Collection
 The final result is a small VR pick-and-place environment inspired by robot teleoperation and demonstration data collection.
 
 The project focuses on learning how interactive VR scenes are structured while exploring how these same interaction techniques could later be extended toward robotics applications.
+
+
+</details>
