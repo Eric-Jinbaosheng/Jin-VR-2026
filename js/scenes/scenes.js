@@ -2,6 +2,7 @@ export default () => {
    return {
       enableSceneReloading: true,
       scenes: [
+            { name: "cyberpunk_coop", path: "./cyberpunk_coop.js", public: true },
             { name: "neon_city_2099", path: "./neon_city_2099.js", public: true },
             { name: "bouncing", path: "./bouncing.js", public: true },
             { name: "widgets", path: "./widgets.js", public: true },
@@ -25,6 +26,7 @@ export default () => {
             { name: "ai_workcell", path: "./ai_workcell.js", public: true },
             { name: "SO101"     , path: "./SO101.js"     , public: true },
             { name: "SO101_parts", path: "./SO101_parts.js", public: true },
+            { name: "minime", path: "./minime.js", public: true },
       ]
    };
 }

@@ -2054,3 +2054,7 @@ The project focuses on learning how interactive VR scenes are structured while e
 
 
 </details>
+
+## HW7 — Cyberpunk City: Giant & Runner
+
+Select `cyberpunk_coop` for the asymmetric two-player city mission. See [setup, controls, coordinates and test status](README_CYBERPUNK_COOP.md).
