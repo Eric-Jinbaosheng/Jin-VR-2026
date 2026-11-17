@@ -12,6 +12,8 @@ For a wired development setup, connect the authorized Quest to the Mac over USB 
 
 ## Demo
 
+[Watch the Quest 3S recording (MP4)](media/hw9/quest-demo.mp4?raw=true). The Mac editor and the actual headset view are shown side by side.
+
 1. In Quest, face the real desk. On the Mac, open **Headset placement**, enter the physical desk height in centimetres (default 78), and press **P** with focus outside a text field while looking toward the middle of the desk. The 70 × 45 cm city board sits at that height, in the direction the wearer faced at placement. It stays in place as the wearer moves.
 2. Press **2** to select Night Tower. Use the **arrow keys** to move it in 5 mm steps or drag footprint **2** on the trackpad. Hold **Shift** for 25 mm steps. Press **+ / −** to resize and **C** to cycle accent colors. **Move left**, **Move right**, **Lower**, and **Raise** below the plan use the same steps and also support Shift. The inspector accepts exact X, Z, and height values in millimetres.
 3. Type a new name and note, such as **Transit Canopy** and **Raise the roof for a clear sightline.** The spatial placard follows the selected building and displays its name, measurements, and note.
@@ -25,7 +27,7 @@ A designer can walk around a 3D massing model to judge spacing and sightlines, l
 ## Verification
 
 - Tested with two Chrome browser contexts against the course WebSocket server. Verified selection, trackpad drag, resize, color, names, notes, save and restore, synchronization, and viewer reload.
-- Injected a tracked pose into the viewer's render loop and verified gaze selection and remote re-placement. Quest passthrough, tracking, and desk alignment still need a physical device check.
+- Tested on a Quest 3S over USB port forwarding. Verified passthrough, gaze selection with **G**, live height changes, and building movement. Also tested remote re-placement with a simulated head pose.
 - Run `node tests/spatial_studio.mjs` for design snapshot, board bounds, and gaze intersection checks. The previous Neon City, co-op, and relay tests also pass.
 
 The course examples `kbdEvents.js`, `kbdEvents2.js`, and `textEdit.js` are available from the scene menu. The studio uses the same global broadcast transport for live snapshots and a dedicated browser inspector for text entry.

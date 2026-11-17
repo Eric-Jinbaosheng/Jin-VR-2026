@@ -1,3 +1,13 @@
+# HW9 — Neon City Spatial Design Studio
+
+Control a miniature city in mixed reality with a Mac keyboard and trackpad. The real-device demo shows gaze selection on a Quest 3S, height edits, and horizontal movement.
+
+[![Quest 3S demo with the Mac editor and the mixed-reality headset view side by side](media/hw9/quest-demo.gif)](media/hw9/quest-demo.mp4?raw=true)
+
+[Full demo video (MP4)](media/hw9/quest-demo.mp4?raw=true) · [Setup and controls](README_SPATIAL_STUDIO.md)
+
+---
+
 # NEON CITY 2099 — The Last Light
 
 **Miniature Object & Avatar VR Assignment**
