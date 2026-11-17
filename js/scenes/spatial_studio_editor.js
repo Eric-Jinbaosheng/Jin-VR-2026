@@ -1,5 +1,16 @@
 import { BOARD, BUILDINGS, COLORS, mm } from './spatial_studio_state.js';
 
+const ADJUSTMENTS = {
+   ArrowLeft: ['x', -1],
+   ArrowRight: ['x', 1],
+   ArrowUp: ['z', -1],
+   ArrowDown: ['z', 1],
+   '-': ['height', -1],
+   '_': ['height', -1],
+   '+': ['height', 1],
+   '=': ['height', 1],
+};
+
 export function makeEditor(actions, signal) {
    const ui = document.createElement('section');
    ui.className = 'spatial-studio';
@@ -18,6 +29,8 @@ export function makeEditor(actions, signal) {
          .spatial-studio .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
          .spatial-studio .fields{display:grid;gap:7px;margin:10px 0}
          .spatial-studio .buttons{display:flex;gap:6px;flex-wrap:wrap}
+         .spatial-studio .adjustments{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+         .spatial-studio .adjustments button{padding-inline:3px}
          .spatial-studio .plan{position:relative;box-sizing:border-box;margin:10px 0;aspect-ratio:14 / 9;border:1px solid #425870;border-radius:6px;background:linear-gradient(#29405770 1px,transparent 1px),linear-gradient(90deg,#29405770 1px,transparent 1px),#101e2d;background-size:10% 10%;touch-action:none;user-select:none}
          .spatial-studio .lot{position:absolute;transform:translate(-50%,-50%);border:1px solid var(--lot);border-radius:3px;background:color-mix(in srgb,var(--lot) 22%,#101e2d);color:#fff;text-shadow:0 1px 2px #000;padding:0;font-weight:650;cursor:grab}
          .spatial-studio .lot[aria-pressed=true]{outline:2px solid #fff;z-index:1}
@@ -29,6 +42,12 @@ export function makeEditor(actions, signal) {
       <h1>Spatial Design Studio</h1>
       <div>Neon City <span aria-hidden="true">·</span> <a data-viewer target="_blank" rel="noopener">Open headset view ↗</a></div>
       <div class="plan" role="group" aria-label="Building plan. Click to select or drag to move."></div>
+      <div class="adjustments" role="group" aria-label="Adjust selected building">
+         <button data-adjust="ArrowLeft" aria-keyshortcuts="ArrowLeft">Move left</button>
+         <button data-adjust="ArrowRight" aria-keyshortcuts="ArrowRight">Move right</button>
+         <button data-adjust="-">Lower</button>
+         <button data-adjust="+">Raise</button>
+      </div>
       <div class="fields">
          <label>Building name<input name="name" maxlength="28"></label>
          <label>Design note<input name="note" maxlength="72" placeholder="Add a spatial annotation"></label>
@@ -43,7 +62,7 @@ export function makeEditor(actions, signal) {
          <button data-save>Save</button><button data-restore>Restore</button><button data-gaze disabled>Pick gaze</button>
       </div>
       <p class="status" data-status role="status"></p>
-      <div class="keys">0–9 select · arrows move · + / − resize · C color · S save · G pick gaze</div>
+      <div class="keys">0–9 select · arrows move · + / − height · Shift for 25 mm · C color · S save · G pick gaze</div>
       <details><summary>Headset placement</summary>
          <label>Desk height (cm)<input name="desk" type="number" min="50" max="120" step="1"></label>
          <button data-place>Place in front of headset [P]</button>
@@ -119,6 +138,15 @@ export function makeEditor(actions, signal) {
    $('[data-gaze]').onclick = actions.gaze;
    $('[data-place]').onclick = actions.place;
 
+   function adjust(key, fast) {
+      const [field, direction] = ADJUSTMENTS[key];
+      const { selected, buildings } = actions.state();
+      const step = fast ? .025 : .005;
+      actions.edit(selected, { [field]: buildings[selected][field] + direction * step });
+   }
+   for (const button of ui.querySelectorAll('[data-adjust]'))
+      listen(button, 'click', event => adjust(button.dataset.adjust, event.shiftKey));
+
    // Stop course navigation handlers while editing fields, leaving native input behavior intact.
    for (const type of ['keydown', 'keyup'])
       listen(ui, type, e => e.stopPropagation(), { capture: false });
@@ -129,17 +157,9 @@ export function makeEditor(actions, signal) {
       const { selected, buildings } = actions.state();
       const index = BUILDINGS.findIndex(b => b.key === e.key);
       const b = buildings[selected];
-      const step = e.shiftKey ? .025 : .005;
-      const repeatable = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', '+', '=', '-'].includes(e.key);
       if (index >= 0) { if (!e.repeat) actions.select(index); }
-      else if (repeatable) {
-         const changes = {
-            ArrowLeft: { x: b.x - step }, ArrowRight: { x: b.x + step },
-            ArrowUp: { z: b.z - step }, ArrowDown: { z: b.z + step },
-            '+': { height: b.height + step }, '=': { height: b.height + step }, '-': { height: b.height - step },
-         };
-         actions.edit(selected, changes[e.key]);
-      } else {
+      else if (Object.hasOwn(ADJUSTMENTS, e.key)) adjust(e.key, e.shiftKey);
+      else {
          const shortcut = {
             c: () => actions.edit(selected, { color: COLORS[(COLORS.indexOf(b.color) + 1) % COLORS.length] }),
             s: actions.save, g: actions.gaze, p: actions.place,
