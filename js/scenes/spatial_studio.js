@@ -1,7 +1,7 @@
 import * as cg from '../render/core/cg.js';
 import { buildCity } from './neon_city_buildings.js';
 import { makeEditor } from './spatial_studio_editor.js';
-import { BUILDINGS, clamp, cleanBuilding, initialDesign, mm, pickBuilding, readDesign } from './spatial_studio_state.js';
+import { BUILDINGS, clamp, cleanBuilding, createGazeLatch, initialDesign, mm, pickBuilding, readDesign } from './spatial_studio_state.js';
 
 const DESIGN = 'neonSpatialStudioDesign';
 const GAZE = 'neonSpatialStudioGaze';
@@ -26,6 +26,14 @@ export const init = async model => {
       outline.add('cube').move(0,0,sign).scale(1.04,1,.055).dull();
    }
    const gazeMark = markers.add('ringY').color(1,.72,.26).dull().scale(0);
+   const reticle = markers.add('sphere').color(.9,.95,1).dull().scale(0);
+   const gazeBadge = markers.add().scale(0);
+   const badgeCanvas = document.createElement('canvas');
+   badgeCanvas.width = 256;
+   badgeCanvas.height = 128;
+   badgeCanvas._animate = true;
+   const badgeInk = badgeCanvas.getContext('2d');
+   gazeBadge.add('square').scale(.029,.0145,1).setTxtr(badgeCanvas).dull();
    const panel = root.add();
    const placard = document.createElement('canvas');
    placard.width = 768;
@@ -48,8 +56,8 @@ export const init = async model => {
    let anchoredPlacement = null;
    let anchoredDesk = null;
    let gaze = null;
-   let candidate = null;
-   let candidateAt = 0;
+   const gazeLatch = createGazeLatch();
+   let badgeIndex = null;
    let lastDesignAt = -Infinity;
    let lastRemoteGazeAt = -Infinity;
    let remoteGaze = null;
@@ -135,6 +143,11 @@ export const init = async model => {
       if (!xr) root.turnX(.38).turnY(-.19).scale(innerWidth > 620 ? 1.50 : 1);
    }
 
+   function buildingPeak(index) {
+      const { h } = BUILDINGS[index];
+      return (h + (index % 3 === 0 ? .077 : .042)) * design.buildings[index].height / h;
+   }
+
    function renderDesign() {
       design.buildings.forEach((b, index) => {
          const {group, accents} = city.buildings[index];
@@ -146,8 +159,7 @@ export const init = async model => {
       const b = design.buildings[index];
       const {w, d, key} = BUILDINGS[index];
       outline.identity().move(b.x,.011,b.z).scale(w + .005,.0014,d + .005).color(.9,.99,1);
-      const roof = (.042 + BUILDINGS[index].h) * b.height / BUILDINGS[index].h;
-      const peak = index % 3 === 0 ? roof + .035 * b.height / BUILDINGS[index].h : roof;
+      const peak = buildingPeak(index);
       panelHeight = peak + .109;
       leader.identity().link([b.x,peak + .006,b.z], [b.x,panelHeight - .061,b.z], .001);
 
@@ -244,17 +256,33 @@ export const init = async model => {
       panel.identity().move(b.x,panelHeight,b.z)
          .turnY(Math.atan2(localHead[12] - b.x, localHead[14] - b.z));
       if (!isEditor && xr) {
+         reticle.setMatrix(localHead).move(0,0,-.45).scale(.0013);
          const index = pickBuilding(localHead.slice(12, 15), localHead.slice(8, 11).map(v => -v), design.buildings);
-         if (index !== candidate) { candidate = index; candidateAt = now; }
-         if (candidate === null || now - candidateAt >= 250) gaze = candidate;
-         if (gaze !== null) {
-            const b = design.buildings[gaze];
-            gazeMark.identity().move(b.x,.014,b.z)
-               .scale(BUILDINGS[gaze].w + .013,.002,BUILDINGS[gaze].d + .013);
-         } else gazeMark.identity().scale(0);
+         gaze = gazeLatch.update(index, now);
       } else {
-         gaze = candidate = null;
+         gazeLatch.reset();
+         gaze = null;
+         reticle.identity().scale(0);
+      }
+      if (gaze !== null) {
+         const b = design.buildings[gaze];
+         const { w, d, key } = BUILDINGS[gaze];
+         gazeMark.identity().move(b.x,.018,b.z).scale(w + .016,.004,d + .016);
+         gazeBadge.identity().move(b.x,buildingPeak(gaze) + .032,b.z)
+            .turnY(Math.atan2(localHead[12] - b.x, localHead[14] - b.z));
+         if (badgeIndex !== gaze) {
+            badgeInk.fillStyle = '#ffd277';
+            badgeInk.fillRect(0, 0, 256, 128);
+            badgeInk.fillStyle = '#201509';
+            badgeInk.font = 'bold 82px system-ui';
+            badgeInk.textAlign = 'center';
+            badgeInk.textBaseline = 'middle';
+            badgeInk.fillText(key, 128, 66);
+            badgeIndex = gaze;
+         }
+      } else {
          gazeMark.identity().scale(0);
+         gazeBadge.identity().scale(0);
       }
       if (!isEditor && open && received && now - lastDesignAt < 1800 &&
           (xr || now - lastGaze < 1000) && now - lastGaze >= 120) {

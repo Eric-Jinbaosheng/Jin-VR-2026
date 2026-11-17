@@ -44,6 +44,31 @@ export const initialDesign = () => ({
    buildings: BUILDINGS.map((_, index) => cleanBuilding(index)),
 });
 
+// Require a steady hit before changing targets. Let the wearer glance at
+// the keyboard briefly after acquiring a target.
+export function createGazeLatch() {
+   let candidate = null;
+   let candidateAt = 0;
+   let locked = null;
+   let lastHitAt = -Infinity;
+   return {
+      update(hit, now) {
+         if (hit !== candidate) {
+            candidate = hit;
+            candidateAt = now;
+         }
+         if (hit !== null && now - candidateAt >= 450) locked = hit;
+         if (hit !== null && hit === locked) lastHitAt = now;
+         if (now - lastHitAt > 3000) locked = null;
+         return locked;
+      },
+      reset() {
+         candidate = locked = null;
+         lastHitAt = -Infinity;
+      },
+   };
+}
+
 // Nearest ray intersection with the editable building volumes in city coordinates.
 export function pickBuilding(origin, direction, buildings) {
    let nearest = Infinity;

@@ -15,7 +15,7 @@ For a wired development setup, connect the authorized Quest to the Mac over USB 
 1. In Quest, face the real desk. On the Mac, open **Headset placement**, enter the physical desk height in centimetres (default 78), and press **P** with focus outside a text field while looking toward the middle of the desk. The 70 × 45 cm city board sits at that height, in the direction the wearer faced at placement. It stays in place as the wearer moves.
 2. Press **2** to select Night Tower. Use the **arrow keys** to move it in 5 mm steps or drag footprint **2** on the trackpad. Hold **Shift** for 25 mm steps. Press **+ / −** to resize and **C** to cycle accent colors. The inspector accepts exact X, Z, and height values in millimetres.
 3. Type a new name and note, such as **Transit Canopy** and **Raise the roof for a clear sightline.** The spatial placard follows the selected building and displays its name, measurements, and note.
-4. Aim the centre of the headset at another building until an amber ground marker appears. Press **G** on the Mac or click **Pick gaze** to confirm. The white footprint marks the current edit target. This uses head direction.
+4. Line up the centre dot in the headset with another building until its number appears in amber above its roof. Press **G** on the Mac or click **Pick gaze** to confirm. The target stays active for three seconds after looking away, so there is time to glance at the keyboard. The white footprint marks the current edit target. This uses head direction.
 5. Press **S** or click **Save**, make another edit, then click **Restore**. One saved snapshot is stored in that browser and origin. Restore sends it to the viewer.
 
 ## Future workflow

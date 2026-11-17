@@ -6,7 +6,7 @@ const readScene = file => readFile(new URL('../js/scenes/' + file, import.meta.u
 
 const math = asModule(await readScene('neon_city_math.js'));
 const geometry = asModule((await readScene('neon_city_buildings.js')).replace('./neon_city_math.js', math));
-const { BUILDINGS, cleanBuilding, initialDesign, pickBuilding, readDesign } = await import(
+const { BUILDINGS, cleanBuilding, createGazeLatch, initialDesign, pickBuilding, readDesign } = await import(
    asModule((await readScene('spatial_studio_state.js')).replace('./neon_city_buildings.js', geometry))
 );
 
@@ -31,4 +31,19 @@ moved[1] = cleanBuilding(1, { ...moved[1], x: 0, z: .04, height: .22 });
 assert.equal(pickBuilding([0,.09,.35], [0,0,-1], moved), 1);
 assert.equal(pickBuilding([0,.19,-.13], [0,-1,0], moved), 0);
 assert.equal(pickBuilding([0,.19,-.13], [0,1,0], moved), null);
-console.log('PASS: ten keyboard slots, design round trip, board limits, moved geometry, and nearest gaze hit');
+const gaze = createGazeLatch();
+assert.equal(gaze.update(0, 0), null);
+assert.equal(gaze.update(0, 449), null);
+assert.equal(gaze.update(0, 450), 0);
+assert.equal(gaze.update(null, 500), 0);
+assert.equal(gaze.update(1, 900), 0);
+assert.equal(gaze.update(null, 1000), 0);
+assert.equal(gaze.update(1, 1200), 0);
+assert.equal(gaze.update(1, 1650), 1);
+assert.equal(gaze.update(null, 4649), 1);
+assert.equal(gaze.update(null, 4651), null);
+gaze.update(2, 5000);
+assert.equal(gaze.update(2, 5500), 2);
+gaze.reset();
+assert.equal(gaze.update(null, 5510), null);
+console.log('PASS: ten keyboard slots, design round trip, board limits, moved geometry, nearest gaze hit, and gaze dwell/hold');
