@@ -27,6 +27,9 @@ export default () => {
             { name: "SO101"     , path: "./SO101.js"     , public: true },
             { name: "SO101_parts", path: "./SO101_parts.js", public: true },
             { name: "minime", path: "./minime.js", public: true },
+            { name: "kbdEvents", path: "./kbdEvents.js", public: true },
+            { name: "kbdEvents2", path: "./kbdEvents2.js", public: true },
+            { name: "textEdit", path: "./textEdit.js", public: true },
       ]
    };
 }
