@@ -81,3 +81,10 @@ canvas {
   color: rgb(80, 168, 252);
   background-color: rgba(255, 255, 255, 0.7);
 }
+
+/* Dedicated Spatial Design Studio entry points. Keep the headset AR button. */
+.studio-editor #header,
+.studio-viewer #header > :is(details, #messages, #active-demo, #connection-status) {
+  display: none;
+}
+.studio-viewer #header { background: #0b1421; }

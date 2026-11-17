@@ -4,6 +4,11 @@ const FC_queryParams = new Proxy(new URLSearchParams(window.location.search), {
   get: (searchParams, prop) => searchParams.get(prop),
 });
 
+if (['editor', 'viewer'].includes(FC_queryParams.studio)) {
+   window.onlyScene = 'spatial_studio';
+   document.body.classList.add('studio-' + FC_queryParams.studio);
+}
+
 const PRESENTATION_FLAG_DEFAULT    = 0;
 window.PRESENTATION_FLAG_DEFAULT   = PRESENTATION_FLAG_DEFAULT;
 const PRESENTATION_FLAG_NO_RENDER  = 1 << 0;
@@ -74,7 +79,7 @@ window.containsFlags = containsFlags;
 window.gpuUseAlphaToCoverage = true;
 
 window.mainSubComm = null;
-window.desktopHandtrackingEnabled = true;
+window.desktopHandtrackingEnabled = window.onlyScene !== 'spatial_studio';
 window.desktopHandtrackingIsRemote = false;
 
 window.shouldUseHandtracking = () => {

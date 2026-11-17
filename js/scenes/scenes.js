@@ -2,6 +2,7 @@ export default () => {
    return {
       enableSceneReloading: true,
       scenes: [
+            { name: "spatial_studio", path: "./spatial_studio.js", public: true },
             { name: "cyberpunk_coop", path: "./cyberpunk_coop.js", public: true },
             { name: "neon_city_2099", path: "./neon_city_2099.js", public: true },
             { name: "bouncing", path: "./bouncing.js", public: true },

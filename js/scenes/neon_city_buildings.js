@@ -1,6 +1,7 @@
 import { TERMINALS, WAYPOINTS } from './neon_city_math.js';
 const C={body:[.035,.055,.095],trim:[.075,.11,.17],cyan:[.08,.85,1],pink:[1,.12,.55],gold:[1,.65,.12]};
-export function buildCity(root) {
+export const NEON_BUILDINGS = [[-.28,-.17,.045,.04,.15,'market'],[-.19,-.16,.032,.044,.23,'market'],[-.29,-.045,.042,.03,.105,'market'],[-.30,.14,.027,.04,.17,'market'],[-.17,.19,.032,.025,.11,'market'],[.035,-.17,.04,.036,.19,'reactor'],[.28,-.19,.037,.025,.12,'reactor'],[.30,-.04,.028,.034,.21,'reactor'],[.29,.19,.033,.022,.12,'transit'],[-.045,.20,.033,.02,.12,'transit']];
+export function buildCity(root, {studio = false} = {}) {
   const lights=[],rings=[],cars=[];
   const box=(p,s,c,parent=root)=>parent.add('cube').move(p).scale(s).color(c).dull();
   const light=(p,s,color,district,parent=root)=>{const node=box(p,s,color,parent);lights.push({node,color,district});return node;};
@@ -24,19 +25,24 @@ export function buildCity(root) {
     light([0,.007,z-.021],[.33,.001,.001],C.gold,'reactor');
   }
   // Ten distinct stepped silhouettes; windows are inexpensive opaque strips.
-  const buildings=[[-.28,-.17,.045,.04,.15,'market'],[-.19,-.16,.032,.044,.23,'market'],[-.29,-.045,.042,.03,.105,'market'],[-.30,.14,.027,.04,.17,'market'],[-.17,.19,.032,.025,.11,'market'],[.035,-.17,.04,.036,.19,'reactor'],[.28,-.19,.037,.025,.12,'reactor'],[.30,-.04,.028,.034,.21,'reactor'],[.29,.19,.033,.022,.12,'transit'],[-.045,.20,.033,.02,.12,'transit']];
-  buildings.forEach(([x,z,w,d,h,district],i)=>{
-    box([x,h/2+.008,z],[w,h/2,d],C.body);
-    box([x,h+.014,z],[w*.82,.007,d*.85],C.trim);
-    box([x+.01,h+.03,z],[w*.32,.012,d*.45],C.trim);
+  const buildings = NEON_BUILDINGS.map(([x,z,w,d,h,district],i)=>{
+    const group = root.add().move(x,0,z);
+    box([0,h/2+.008,0],[w,h/2,d],C.body,group);
+    box([0,h+.014,0],[w*.82,.007,d*.85],C.trim,group);
+    box([.01,h+.03,0],[w*.32,.012,d*.45],C.trim,group);
     const color=i%2?C.cyan:C.pink;
-    light([x-w+.002,h/2,z+d+.001],[.001,h/2,.001],color,district);
+    const accents = [light([-w+.002,h/2,d+.001],[.001,h/2,.001],color,district,group)];
     for(let y=.03;y<h;y+=.027) {
-      light([x,y,z+d+.001],[w*.72,.002,.001],color,district);
-      light([x+w+.001,y,z],[.001,.002,d*.65],color,district);
+      accents.push(light([0,y,d+.001],[w*.72,.002,.001],color,district,group));
+      accents.push(light([w+.001,y,0],[.001,.002,d*.65],color,district,group));
     }
-    if(i%3===0){box([x,h+.047,z],[.001,.025,.001],C.trim);light([x,h+.073,z],[.002,.002,.002],C.pink,district);}
+    if(i%3===0){
+      box([0,h+.047,0],[.001,.025,.001],C.trim,group);
+      accents.push(light([0,h+.073,0],[.002,.002,.002],C.pink,district,group));
+    }
+    return {group,accents};
   });
+  if (studio) return { buildings };
   const ads=[['CYBER SHOP',[-.275,.115,-.012],.053,'market',C.pink],['NIGHT / 2099',[-.185,.19,-.114],.05,'market',C.cyan],['TRANSIT',[.29,.1,.214],.045,'transit',C.cyan]];
   for(const [text,p,size,district,color] of ads){box([p[0],p[1],p[2]-.002],[size,.012,.001],C.trim);lights.push({node:label(text,p,size,color),color,district});}
   // Nexus in the back center leaves the plaza and travel routes clear.
